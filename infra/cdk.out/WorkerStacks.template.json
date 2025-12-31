@@ -1,0 +1,2382 @@
+{
+ "Resources": {
+  "WorkerExecutionRole8A72FF4F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/WorkerExecutionRole/Resource"
+   }
+  },
+  "WorkerExecutionRoleDefaultPolicy2AE0C78C": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "secretsmanager:GetSecretValue",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+        },
+        {
+         "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+        },
+        {
+         "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
+        },
+        {
+         "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
+        }
+       ]
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ClaimsToVerifiedWorkerTaskDefClaimsToVerifiedWorkerContainerLogGroup29C26BBF",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "TranscriptToClaimsWorkerTaskDefTranscriptToClaimsWorkerContainerLogGroup323B9688",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "VideoToTranscriptWorkerTaskDefVideoToTranscriptWorkerContainerLogGroupE4CD23C3",
+          "Arn"
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key-??????"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "WorkerExecutionRoleDefaultPolicy2AE0C78C",
+    "Roles": [
+     {
+      "Ref": "WorkerExecutionRole8A72FF4F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/WorkerExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "UrlToVideoWorkerTaskRole303FCA01": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerTaskRole/Resource"
+   }
+  },
+  "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttUrlToVideoQueue9766BE39Arn9D2DB0FD"
+       }
+      },
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": "rds-db:connect",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:aws:rds-db:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":dbuser:*/postgres"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "secretsmanager:GetSecretValue",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "Roles": [
+     {
+      "Ref": "UrlToVideoWorkerTaskRole303FCA01"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerTaskRole/DefaultPolicy/Resource"
+   }
+  },
+  "UrlToVideoWorkerTaskDef2A68AF5E": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "URL_TO_VIDEO_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefUrlToVideoQueue9766BE39B6F3CF36"
+        }
+       },
+       {
+        "Name": "VIDEO_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
+        }
+       },
+       {
+        "Name": "VIDEO_TO_TRANSCRIPT_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+        }
+       },
+       {
+        "Name": "AWS_REGION",
+        "Value": {
+         "Ref": "AWS::Region"
+        }
+       },
+       {
+        "Name": "DB_HOST",
+        "Value": {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+        }
+       },
+       {
+        "Name": "DB_PORT",
+        "Value": "5432"
+       },
+       {
+        "Name": "DB_NAME",
+        "Value": "factchecker"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         {
+          "Fn::Select": [
+           4,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
+             }
+            ]
+           }
+          ]
+         },
+         ".dkr.ecr.",
+         {
+          "Fn::Select": [
+           3,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
+             }
+            ]
+           }
+          ]
+         },
+         ".",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Fn::ImportValue": "EcrStack:ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
+         },
+         ":latest"
+        ]
+       ]
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37"
+        },
+        "awslogs-stream-prefix": "factchecker-url-to-video",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "UrlToVideoWorkerContainer",
+      "Secrets": [
+       {
+        "Name": "DB_USER",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":username::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "DB_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":password::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "OPENAI_API_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key:OPENAI_API_KEY::"
+          ]
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "Cpu": "512",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "WorkerExecutionRole8A72FF4F",
+      "Arn"
+     ]
+    },
+    "Family": "WorkerStacksUrlToVideoWorkerTaskDef723339AE",
+    "Memory": "1024",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "UrlToVideoWorkerTaskRole303FCA01",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerTaskDef/Resource"
+   }
+  },
+  "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerTaskDef/UrlToVideoWorkerContainer/LogGroup/Resource"
+   }
+  },
+  "UrlToVideoWorkerServiceCCFACDBA": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "UrlToVideoWorkerServiceSecurityGroup6C25CAD8",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+       },
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+       }
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "UrlToVideoWorkerTaskDef2A68AF5E"
+    }
+   },
+   "DependsOn": [
+    "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "UrlToVideoWorkerTaskRole303FCA01"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerService/Service"
+   }
+  },
+  "UrlToVideoWorkerServiceSecurityGroup6C25CAD8": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "WorkerStacks/UrlToVideoWorkerService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
+    }
+   },
+   "DependsOn": [
+    "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "UrlToVideoWorkerTaskRole303FCA01"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerService/SecurityGroup/Resource"
+   }
+  },
+  "UrlToVideoWorkerServiceTaskCountTarget2C3649C6": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 10,
+    "MinCapacity": 1,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "UrlToVideoWorkerServiceCCFACDBA",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "UrlToVideoWorkerTaskRole303FCA01"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/Resource"
+   }
+  },
+  "UrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperPolicy197698EF": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "WorkerStacksUrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperPolicyD0DA0652",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "UrlToVideoWorkerServiceTaskCountTarget2C3649C6"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "MetricAggregationType": "Average",
+     "StepAdjustments": [
+      {
+       "MetricIntervalLowerBound": 0,
+       "MetricIntervalUpperBound": 9,
+       "ScalingAdjustment": 1
+      },
+      {
+       "MetricIntervalLowerBound": 9,
+       "ScalingAdjustment": 2
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "UrlToVideoWorkerTaskRole303FCA01"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/UrlToVideoWorkerQueueScaling/UpperPolicy/Resource"
+   }
+  },
+  "UrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperAlarmAB5B6E1B": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "UrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperPolicy197698EF"
+     }
+    ],
+    "AlarmDescription": "Upper threshold scaling alarm",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::ImportValue": "QueueStack:ExportsOutputRefUrlToVideoQueue9766BE39B6F3CF36"
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 300,
+    "Statistic": "Average",
+    "Threshold": 1
+   },
+   "DependsOn": [
+    "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+    "UrlToVideoWorkerTaskRole303FCA01"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/UrlToVideoWorkerQueueScaling/UpperAlarm/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerTaskRoleE075664A": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerTaskRole/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
+       }
+      },
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": "rds-db:connect",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:aws:rds-db:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":dbuser:*/postgres"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "secretsmanager:GetSecretValue",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "Roles": [
+     {
+      "Ref": "VideoToTranscriptWorkerTaskRoleE075664A"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerTaskRole/DefaultPolicy/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerTaskDef98C0A907": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "VIDEO_TO_TRANSCRIPT_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+        }
+       },
+       {
+        "Name": "VIDEO_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
+        }
+       },
+       {
+        "Name": "ASSETS_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
+        }
+       },
+       {
+        "Name": "TRANSCRIPT_TO_CLAIMS_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
+        }
+       },
+       {
+        "Name": "AWS_REGION",
+        "Value": {
+         "Ref": "AWS::Region"
+        }
+       },
+       {
+        "Name": "DB_HOST",
+        "Value": {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+        }
+       },
+       {
+        "Name": "DB_PORT",
+        "Value": "5432"
+       },
+       {
+        "Name": "DB_NAME",
+        "Value": "factchecker"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         {
+          "Fn::Select": [
+           4,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
+             }
+            ]
+           }
+          ]
+         },
+         ".dkr.ecr.",
+         {
+          "Fn::Select": [
+           3,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
+             }
+            ]
+           }
+          ]
+         },
+         ".",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Fn::ImportValue": "EcrStack:ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
+         },
+         ":latest"
+        ]
+       ]
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "VideoToTranscriptWorkerTaskDefVideoToTranscriptWorkerContainerLogGroupE4CD23C3"
+        },
+        "awslogs-stream-prefix": "factchecker-video-to-transcript",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "VideoToTranscriptWorkerContainer",
+      "Secrets": [
+       {
+        "Name": "DB_USER",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":username::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "DB_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":password::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "OPENAI_API_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key:OPENAI_API_KEY::"
+          ]
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "Cpu": "2048",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "WorkerExecutionRole8A72FF4F",
+      "Arn"
+     ]
+    },
+    "Family": "WorkerStacksVideoToTranscriptWorkerTaskDef1FE60F08",
+    "Memory": "4096",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "VideoToTranscriptWorkerTaskRoleE075664A",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerTaskDef/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerTaskDefVideoToTranscriptWorkerContainerLogGroupE4CD23C3": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerTaskDef/VideoToTranscriptWorkerContainer/LogGroup/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerService81BF69A1": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "VideoToTranscriptWorkerServiceSecurityGroupD2F0FE86",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+       },
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+       }
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "VideoToTranscriptWorkerTaskDef98C0A907"
+    }
+   },
+   "DependsOn": [
+    "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "VideoToTranscriptWorkerTaskRoleE075664A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerService/Service"
+   }
+  },
+  "VideoToTranscriptWorkerServiceSecurityGroupD2F0FE86": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "WorkerStacks/VideoToTranscriptWorkerService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
+    }
+   },
+   "DependsOn": [
+    "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "VideoToTranscriptWorkerTaskRoleE075664A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerService/SecurityGroup/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerServiceTaskCountTarget01C4AA75": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 10,
+    "MinCapacity": 1,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "VideoToTranscriptWorkerService81BF69A1",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "VideoToTranscriptWorkerTaskRoleE075664A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperPolicyBAD4B8D0": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "WorkerStacksVideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperPolicyE2388523",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "VideoToTranscriptWorkerServiceTaskCountTarget01C4AA75"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "MetricAggregationType": "Average",
+     "StepAdjustments": [
+      {
+       "MetricIntervalLowerBound": 0,
+       "MetricIntervalUpperBound": 9,
+       "ScalingAdjustment": 1
+      },
+      {
+       "MetricIntervalLowerBound": 9,
+       "ScalingAdjustment": 2
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "VideoToTranscriptWorkerTaskRoleE075664A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/VideoToTranscriptWorkerQueueScaling/UpperPolicy/Resource"
+   }
+  },
+  "VideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperAlarmE960AF34": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "VideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperPolicyBAD4B8D0"
+     }
+    ],
+    "AlarmDescription": "Upper threshold scaling alarm",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 300,
+    "Statistic": "Average",
+    "Threshold": 1
+   },
+   "DependsOn": [
+    "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929",
+    "VideoToTranscriptWorkerTaskRoleE075664A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/VideoToTranscriptWorkerQueueScaling/UpperAlarm/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerTaskRole0764837B": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerTaskRole/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
+       }
+      },
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": "rds-db:connect",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:aws:rds-db:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":dbuser:*/postgres"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "secretsmanager:GetSecretValue",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "Roles": [
+     {
+      "Ref": "TranscriptToClaimsWorkerTaskRole0764837B"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerTaskRole/DefaultPolicy/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerTaskDef8DA7B314": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "TRANSCRIPT_TO_CLAIMS_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
+        }
+       },
+       {
+        "Name": "ASSETS_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
+        }
+       },
+       {
+        "Name": "CLAIMS_TO_VERIFIED_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
+        }
+       },
+       {
+        "Name": "AWS_REGION",
+        "Value": {
+         "Ref": "AWS::Region"
+        }
+       },
+       {
+        "Name": "DB_HOST",
+        "Value": {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+        }
+       },
+       {
+        "Name": "DB_PORT",
+        "Value": "5432"
+       },
+       {
+        "Name": "DB_NAME",
+        "Value": "factchecker"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         {
+          "Fn::Select": [
+           4,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+             }
+            ]
+           }
+          ]
+         },
+         ".dkr.ecr.",
+         {
+          "Fn::Select": [
+           3,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+             }
+            ]
+           }
+          ]
+         },
+         ".",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Fn::ImportValue": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
+         },
+         ":latest"
+        ]
+       ]
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "TranscriptToClaimsWorkerTaskDefTranscriptToClaimsWorkerContainerLogGroup323B9688"
+        },
+        "awslogs-stream-prefix": "factchecker-transcript-to-claims",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "TranscriptToClaimsWorkerContainer",
+      "Secrets": [
+       {
+        "Name": "DB_USER",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":username::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "DB_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":password::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "OPENAI_API_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key:OPENAI_API_KEY::"
+          ]
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "Cpu": "1024",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "WorkerExecutionRole8A72FF4F",
+      "Arn"
+     ]
+    },
+    "Family": "WorkerStacksTranscriptToClaimsWorkerTaskDef63676E24",
+    "Memory": "2048",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TranscriptToClaimsWorkerTaskRole0764837B",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerTaskDef/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerTaskDefTranscriptToClaimsWorkerContainerLogGroup323B9688": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerTaskDef/TranscriptToClaimsWorkerContainer/LogGroup/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerService8D9BB06B": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "TranscriptToClaimsWorkerServiceSecurityGroup132F374E",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+       },
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+       }
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "TranscriptToClaimsWorkerTaskDef8DA7B314"
+    }
+   },
+   "DependsOn": [
+    "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "TranscriptToClaimsWorkerTaskRole0764837B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerService/Service"
+   }
+  },
+  "TranscriptToClaimsWorkerServiceSecurityGroup132F374E": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "WorkerStacks/TranscriptToClaimsWorkerService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
+    }
+   },
+   "DependsOn": [
+    "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "TranscriptToClaimsWorkerTaskRole0764837B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerService/SecurityGroup/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerServiceTaskCountTargetE49D95F3": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 10,
+    "MinCapacity": 1,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "TranscriptToClaimsWorkerService8D9BB06B",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "TranscriptToClaimsWorkerTaskRole0764837B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperPolicy3A2825F2": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "WorkerStacksTranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperPolicy5A6D17D1",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "TranscriptToClaimsWorkerServiceTaskCountTargetE49D95F3"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "MetricAggregationType": "Average",
+     "StepAdjustments": [
+      {
+       "MetricIntervalLowerBound": 0,
+       "MetricIntervalUpperBound": 9,
+       "ScalingAdjustment": 1
+      },
+      {
+       "MetricIntervalLowerBound": 9,
+       "ScalingAdjustment": 2
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "TranscriptToClaimsWorkerTaskRole0764837B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/TranscriptToClaimsWorkerQueueScaling/UpperPolicy/Resource"
+   }
+  },
+  "TranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperAlarmEA0737A5": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "TranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperPolicy3A2825F2"
+     }
+    ],
+    "AlarmDescription": "Upper threshold scaling alarm",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::ImportValue": "QueueStack:ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 300,
+    "Statistic": "Average",
+    "Threshold": 1
+   },
+   "DependsOn": [
+    "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851",
+    "TranscriptToClaimsWorkerTaskRole0764837B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/TranscriptToClaimsWorkerQueueScaling/UpperAlarm/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerTaskRoleB292378E": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerTaskRole/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
+       }
+      },
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": "rds-db:connect",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:aws:rds-db:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":dbuser:*/postgres"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "secretsmanager:GetSecretValue",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "Roles": [
+     {
+      "Ref": "ClaimsToVerifiedWorkerTaskRoleB292378E"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerTaskRole/DefaultPolicy/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerTaskDef700C8C6F": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "CLAIMS_TO_VERIFIED_QUEUE_URL",
+        "Value": {
+         "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
+        }
+       },
+       {
+        "Name": "AWS_REGION",
+        "Value": {
+         "Ref": "AWS::Region"
+        }
+       },
+       {
+        "Name": "DB_HOST",
+        "Value": {
+         "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+        }
+       },
+       {
+        "Name": "DB_PORT",
+        "Value": "5432"
+       },
+       {
+        "Name": "DB_NAME",
+        "Value": "factchecker"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         {
+          "Fn::Select": [
+           4,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+             }
+            ]
+           }
+          ]
+         },
+         ".dkr.ecr.",
+         {
+          "Fn::Select": [
+           3,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+             }
+            ]
+           }
+          ]
+         },
+         ".",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Fn::ImportValue": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
+         },
+         ":latest"
+        ]
+       ]
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "ClaimsToVerifiedWorkerTaskDefClaimsToVerifiedWorkerContainerLogGroup29C26BBF"
+        },
+        "awslogs-stream-prefix": "factchecker-claims-to-verified",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "ClaimsToVerifiedWorkerContainer",
+      "Secrets": [
+       {
+        "Name": "DB_USER",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":username::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "DB_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+           },
+           ":password::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "OPENAI_API_KEY",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":secretsmanager:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":secret:factchecker/openai-api-key:OPENAI_API_KEY::"
+          ]
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "Cpu": "512",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "WorkerExecutionRole8A72FF4F",
+      "Arn"
+     ]
+    },
+    "Family": "WorkerStacksClaimsToVerifiedWorkerTaskDefC671888D",
+    "Memory": "1024",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "ClaimsToVerifiedWorkerTaskRoleB292378E",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerTaskDef/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerTaskDefClaimsToVerifiedWorkerContainerLogGroup29C26BBF": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerTaskDef/ClaimsToVerifiedWorkerContainer/LogGroup/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerServiceC5451B00": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "ClaimsToVerifiedWorkerServiceSecurityGroup1E4E5A21",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+       },
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+       }
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "ClaimsToVerifiedWorkerTaskDef700C8C6F"
+    }
+   },
+   "DependsOn": [
+    "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "ClaimsToVerifiedWorkerTaskRoleB292378E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerService/Service"
+   }
+  },
+  "ClaimsToVerifiedWorkerServiceSecurityGroup1E4E5A21": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "WorkerStacks/ClaimsToVerifiedWorkerService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
+    }
+   },
+   "DependsOn": [
+    "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "ClaimsToVerifiedWorkerTaskRoleB292378E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerService/SecurityGroup/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerServiceTaskCountTarget0D2B5825": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 10,
+    "MinCapacity": 1,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "ClaimsToVerifiedWorkerServiceC5451B00",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "ClaimsToVerifiedWorkerTaskRoleB292378E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperPolicy264B71A6": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "WorkerStacksClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperPolicy5AACF432",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "ClaimsToVerifiedWorkerServiceTaskCountTarget0D2B5825"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "MetricAggregationType": "Average",
+     "StepAdjustments": [
+      {
+       "MetricIntervalLowerBound": 0,
+       "MetricIntervalUpperBound": 9,
+       "ScalingAdjustment": 1
+      },
+      {
+       "MetricIntervalLowerBound": 9,
+       "ScalingAdjustment": 2
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "ClaimsToVerifiedWorkerTaskRoleB292378E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/ClaimsToVerifiedWorkerQueueScaling/UpperPolicy/Resource"
+   }
+  },
+  "ClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperAlarmB5CD102E": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "ClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperPolicy264B71A6"
+     }
+    ],
+    "AlarmDescription": "Upper threshold scaling alarm",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 300,
+    "Statistic": "Average",
+    "Threshold": 1
+   },
+   "DependsOn": [
+    "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981",
+    "ClaimsToVerifiedWorkerTaskRoleB292378E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/ClaimsToVerifiedWorkerQueueScaling/UpperAlarm/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11Qy27DIBD8ltwxjdP+QJSqveQQ2b1XG7xxtsZg8WhkWfx7AcdRXAlph2GW2Z0dL9+2fLuBmy1E0xWSznyqHYiOVWi1NwJZfPueCHo+VVoiO1xUrictSYzpOqPAUFg+fYBpweEX2O4dL6TIkVZJ9Z/RygEpNE/cvbdG80siOy2wFiDhLPO3B+2VC0zqNtoddftptB+SeMFpkl1cA4U35MbH+4oIDIYhzg3JGbzTNlqQamPfw8u06HLjmqkdDvWsvofwxOzFsvBKEpiQ2jc3cOLKp70E0ydNBiHkUJe8I47hNDmSwE6ju2r18srLeMrNjyUqTAyAeuTVXP8AgTPVkcUBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "WorkerStacks/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-2"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

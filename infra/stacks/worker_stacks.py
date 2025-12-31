@@ -1,0 +1,295 @@
+"""Worker ECS services stack."""
+from typing import Dict
+from aws_cdk import (
+    Stack,
+    aws_ec2 as ec2,
+    aws_ecs as ecs,
+    aws_ecr as ecr,
+    aws_iam as iam,
+    aws_secretsmanager as secretsmanager,
+    aws_applicationautoscaling as appscaling,
+    aws_cloudwatch as cloudwatch,
+)
+from constructs import Construct
+
+
+class WorkerStacks(Stack):
+    """Stack for worker ECS services."""
+
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        vpc: ec2.IVpc,
+        cluster: ecs.Cluster,
+        database_secret: secretsmanager.ISecret,
+        database_endpoint: str,
+        video_bucket_name: str,
+        assets_bucket_name: str,
+        url_to_video_queue_url: str,
+        video_to_transcript_queue_url: str,
+        transcript_to_claims_queue_url: str,
+        claims_to_verified_queue_url: str,
+        url_to_video_queue_arn: str,
+        video_to_transcript_queue_arn: str,
+        transcript_to_claims_queue_arn: str,
+        claims_to_verified_queue_arn: str,
+        ecr_repositories: Dict[str, ecr.IRepository],
+        **kwargs
+    ) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        # Store database endpoint for use in worker services
+        self.database_endpoint = database_endpoint
+
+        # Get OpenAI secret
+        openai_secret = secretsmanager.Secret.from_secret_name_v2(
+            self, "OpenAISecret", "factchecker/openai-api-key"
+        )
+
+        # Common execution role for all workers
+        execution_role = iam.Role(
+            self,
+            "WorkerExecutionRole",
+            assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/AmazonECSTaskExecutionRolePolicy"
+                )
+            ],
+        )
+
+        execution_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["secretsmanager:GetSecretValue"],
+                resources=[database_secret.secret_arn, openai_secret.secret_arn],
+            )
+        )
+
+        # URL to Video Worker
+        self._create_worker_service(
+            "UrlToVideoWorker",
+            cluster,
+            "url-to-video",
+            execution_role,
+            database_secret,
+            openai_secret,
+            {
+                "URL_TO_VIDEO_QUEUE_URL": url_to_video_queue_url,
+                "VIDEO_BUCKET": video_bucket_name,
+                "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
+                "AWS_REGION": self.region,
+            },
+            queue_url=url_to_video_queue_url,
+            queue_arn=url_to_video_queue_arn,
+            cpu=512,
+            memory=1024,
+            repository=ecr_repositories["url-to-video"],
+        )
+
+        # Video to Transcript Worker
+        self._create_worker_service(
+            "VideoToTranscriptWorker",
+            cluster,
+            "video-to-transcript",
+            execution_role,
+            database_secret,
+            openai_secret,
+            {
+                "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
+                "VIDEO_BUCKET": video_bucket_name,
+                "ASSETS_BUCKET": assets_bucket_name,
+                "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+                "AWS_REGION": self.region,
+            },
+            queue_url=video_to_transcript_queue_url,
+            queue_arn=video_to_transcript_queue_arn,
+            cpu=2048,
+            memory=4096,
+            repository=ecr_repositories["video-to-transcript"],
+        )
+
+        # Transcript to Claims Worker
+        self._create_worker_service(
+            "TranscriptToClaimsWorker",
+            cluster,
+            "transcript-to-claims",
+            execution_role,
+            database_secret,
+            openai_secret,
+            {
+                "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+                "ASSETS_BUCKET": assets_bucket_name,
+                "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+                "AWS_REGION": self.region,
+            },
+            queue_url=transcript_to_claims_queue_url,
+            queue_arn=transcript_to_claims_queue_arn,
+            cpu=1024,
+            memory=2048,
+            repository=ecr_repositories["transcript-to-claims"],
+        )
+
+        # Claims to Verified Worker
+        self._create_worker_service(
+            "ClaimsToVerifiedWorker",
+            cluster,
+            "claims-to-verified",
+            execution_role,
+            database_secret,
+            openai_secret,
+            {
+                "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+                "AWS_REGION": self.region,
+            },
+            queue_url=claims_to_verified_queue_url,
+            queue_arn=claims_to_verified_queue_arn,
+            cpu=512,
+            memory=1024,
+            repository=ecr_repositories["claims-to-verified"],
+        )
+
+    def _create_worker_service(
+        self,
+        service_id: str,
+        cluster: ecs.Cluster,
+        service_name: str,
+        execution_role: iam.Role,
+        database_secret: secretsmanager.ISecret,
+        openai_secret: secretsmanager.ISecret,
+        environment: dict,
+        queue_url: str,
+        queue_arn: str,
+        cpu: int,
+        memory: int,
+        repository: ecr.IRepository,
+    ):
+        """Create a worker ECS service."""
+        # Create task role
+        task_role = iam.Role(
+            self,
+            f"{service_id}TaskRole",
+            assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+        )
+
+        # Grant SQS permissions
+        # Note: Using all SQS actions needed for receiving and processing messages
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueAttributes",
+                    "sqs:GetQueueUrl",
+                    "sqs:ChangeMessageVisibility",
+                ],
+                resources=[queue_arn],
+            )
+        )
+
+        # Grant S3 permissions
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
+                resources=["*"],  # Restrict to specific buckets in production
+            )
+        )
+
+        # Grant SQS send permissions (for next queue in pipeline)
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["sqs:SendMessage"],
+                resources=["*"],  # Restrict to specific queues in production
+            )
+        )
+
+        # Grant RDS permissions
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["rds-db:connect"],
+                resources=[f"arn:aws:rds-db:{self.region}:{self.account}:dbuser:*/postgres"],
+            )
+        )
+
+        # Grant Secrets Manager permissions
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["secretsmanager:GetSecretValue"],
+                resources=[database_secret.secret_arn, openai_secret.secret_arn],
+            )
+        )
+
+        # Add database connection info to environment
+        env = {
+            **environment,
+            "DB_HOST": self.database_endpoint,
+            "DB_PORT": "5432",
+            "DB_NAME": "factchecker",
+        }
+
+        # Create task definition
+        task_definition = ecs.FargateTaskDefinition(
+            self,
+            f"{service_id}TaskDef",
+            cpu=cpu,
+            memory_limit_mib=memory,
+            task_role=task_role,
+            execution_role=execution_role,
+        )
+
+        # Add container
+        container = task_definition.add_container(
+            f"{service_id}Container",
+            image=ecs.ContainerImage.from_ecr_repository(
+                repository, "latest"
+            ),
+            environment=env,
+            secrets={
+                "DB_USER": ecs.Secret.from_secrets_manager(database_secret, "username"),
+                "DB_PASSWORD": ecs.Secret.from_secrets_manager(database_secret, "password"),
+                "OPENAI_API_KEY": ecs.Secret.from_secrets_manager(openai_secret, "OPENAI_API_KEY"),
+            },
+            logging=ecs.LogDrivers.aws_logs(
+                stream_prefix=f"factchecker-{service_name}",
+            ),
+        )
+
+        # Create service
+        service = ecs.FargateService(
+            self,
+            f"{service_id}Service",
+            cluster=cluster,
+            task_definition=task_definition,
+            desired_count=1,
+        )
+
+        # Auto-scaling based on queue depth
+        scalable_target = service.auto_scale_task_count(
+            min_capacity=1,
+            max_capacity=10,
+        )
+
+        # Note: Queue depth metric would need to be set up separately
+        # This is a placeholder for queue-based scaling
+        # Extract queue name from URL for CloudWatch metric dimension
+        queue_name = queue_url.split("/")[-1]
+        scalable_target.scale_on_metric(
+            f"{service_id}QueueScaling",
+            metric=cloudwatch.Metric(
+                namespace="AWS/SQS",
+                metric_name="ApproximateNumberOfMessagesVisible",
+                dimensions_map={"QueueName": queue_name},
+            ),
+            scaling_steps=[
+                appscaling.ScalingInterval(upper=0, change=0),
+                appscaling.ScalingInterval(lower=1, change=+1),
+                appscaling.ScalingInterval(lower=10, change=+2),
+            ],
+        )
+
