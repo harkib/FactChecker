@@ -8,6 +8,7 @@ from aws_cdk import (
     aws_iam as iam,
     aws_secretsmanager as secretsmanager,
     aws_ecr as ecr,
+    aws_apigateway as apigw,
     Duration,
 )
 from constructs import Construct
@@ -138,18 +139,127 @@ class ApiStack(Stack):
             target_utilization_percent=70,
         )
 
-        # Output the API endpoint
+        # Create API Gateway REST API in front of ALB
+        # REST API supports throttling, API keys, and usage plans out of the box
+        self.rest_api = apigw.RestApi(
+            self,
+            "ApiGateway",
+            description="FactChecker API Gateway",
+            rest_api_name="factchecker-api",
+            endpoint_configuration=apigw.EndpointConfiguration(
+                types=[apigw.EndpointType.REGIONAL]
+            ),
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=apigw.Cors.ALL_ORIGINS,
+                allow_methods=apigw.Cors.ALL_METHODS,
+                allow_headers=["*"],
+                max_age=Duration.days(1),
+            ),
+            deploy_options=apigw.StageOptions(
+                # Configure throttling: 50 requests/second, burst of 100
+                throttling_rate_limit=50,
+                throttling_burst_limit=100,
+                stage_name="prod",
+                # Note: Logging disabled - requires CloudWatch Logs role to be configured
+                # at account level. Enable after running:
+                # aws iam create-role --role-name api-gateway-cloudwatch-logs-role --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"apigateway.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+                # aws iam attach-role-policy --role-name api-gateway-cloudwatch-logs-role --policy-arn arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+                # aws apigateway put-account --cloudwatch-role-arn arn:aws:iam::ACCOUNT_ID:role/api-gateway-cloudwatch-logs-role
+                metrics_enabled=True,  # Metrics don't require the role
+            ),
+        )
+
+        # Create API key for authentication (create before methods so we can reference it)
+        api_key = self.rest_api.add_api_key(
+            "ApiKey",
+            description="FactChecker API Key",
+        )
+
+        # Create HTTP proxy integration with ALB
+        # For REST API HTTP proxy, the URI should include {proxy} placeholder
+        # The double braces {{proxy}} become {proxy} in the final string
+        alb_base_url = f"http://{self.fargate_service.load_balancer.load_balancer_dns_name}"
+        proxy_integration = apigw.HttpIntegration(
+            f"{alb_base_url}/{{proxy}}",
+            http_method="ANY",
+            proxy=True,
+            options=apigw.IntegrationOptions(
+                request_parameters={
+                    "integration.request.path.proxy": "method.request.path.proxy",
+                },
+            ),
+        )
+        
+        # Add catch-all proxy resource to forward all requests to ALB
+        proxy_resource = self.rest_api.root.add_resource("{proxy+}")
+        proxy_resource.add_method(
+            "ANY",
+            proxy_integration,
+            api_key_required=True,  # Require API key for all requests
+            request_parameters={
+                "method.request.path.proxy": True,
+            },
+        )
+
+        # Also add root resource to handle requests without path
+        self.rest_api.root.add_method(
+            "ANY",
+            apigw.HttpIntegration(
+                f"http://{self.fargate_service.load_balancer.load_balancer_dns_name}",
+                http_method="ANY",
+                proxy=True,
+            ),
+            api_key_required=True,  # Require API key for all requests
+        )
+
+        # Create usage plan with throttling
+        usage_plan = self.rest_api.add_usage_plan(
+            "UsagePlan",
+            name="factchecker-usage-plan",
+            throttle=apigw.ThrottleSettings(
+                rate_limit=50,  # requests per second
+                burst_limit=100,  # burst capacity
+            ),
+            quota=apigw.QuotaSettings(
+                limit=10000,  # requests per day
+                period=apigw.Period.DAY,
+            ),
+        )
+
+        # Associate API key with usage plan and stage
+        usage_plan.add_api_key(api_key)
+        usage_plan.add_api_stage(
+            stage=self.rest_api.deployment_stage,
+        )
+
+        # Output the API Gateway endpoint (primary endpoint)
         CfnOutput(
             self,
             "ApiEndpoint",
+            value=self.rest_api.url,
+            description="API Gateway endpoint URL (use this as your public API endpoint)",
+        )
+
+        # Output the ALB endpoint (for direct access/debugging - can be removed in production)
+        CfnOutput(
+            self,
+            "AlbEndpoint",
             value=f"http://{self.fargate_service.load_balancer.load_balancer_dns_name}",
-            description="API endpoint URL",
+            description="ALB endpoint URL (direct access, behind API Gateway)",
+        )
+
+        # Output API key ID (users will need to get the key value from AWS Console or CLI)
+        CfnOutput(
+            self,
+            "ApiKeyId",
+            value=api_key.key_id,
+            description="API Key ID - use AWS CLI or Console to get the key value: aws apigateway get-api-key --api-key <key-id> --include-value",
         )
 
         CfnOutput(
             self,
             "ApiHealthCheck",
-            value=f"http://{self.fargate_service.load_balancer.load_balancer_dns_name}/health",
-            description="API health check endpoint",
+            value=f"{self.rest_api.url}health",
+            description="API health check endpoint via API Gateway",
         )
 

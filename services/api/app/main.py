@@ -8,9 +8,12 @@ import sys
 # From /app/app/main.py, go up one level to /app, then shared is at /app/shared
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
 from app.services import create_fact_check_job, get_job_by_id
-from shared.database import init_db
+from shared.database import init_db_async, get_db
 
 app = FastAPI(title="FactChecker API", version="1.0.0")
 
@@ -27,32 +30,32 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection pool on startup."""
-    init_db()
+    await init_db_async()
 
 
 @app.post("/jobs", response_model=CreateJobResponse, status_code=201)
-async def create_job(request: CreateJobRequest):
+async def create_job(request: CreateJobRequest, db: AsyncSession = Depends(get_db)):
     """Create a new fact-checking job."""
     try:
-        job_id = create_fact_check_job(str(request.video_url))
+        job_id = await create_fact_check_job(db, str(request.video_url))
         return CreateJobResponse(job_id=job_id, status="pending")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")
 
 
 @app.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job(job_id: str):
+async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
     """Get job status and results."""
-    job = get_job_by_id(job_id)
+    job = await get_job_by_id(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return JobResponse(**job)
 
 
 @app.get("/jobs/{job_id}/results", response_model=JobResponse)
-async def get_job_results(job_id: str):
+async def get_job_results(job_id: str, db: AsyncSession = Depends(get_db)):
     """Get verified claims for a completed job."""
-    job = get_job_by_id(job_id)
+    job = await get_job_by_id(db, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if job["status"] != "completed":

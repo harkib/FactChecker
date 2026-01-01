@@ -2,10 +2,13 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies including ffmpeg and git
+# Install system dependencies including ffmpeg, git, and build tools for asyncpg compilation
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
+    gcc \
+    python3-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
