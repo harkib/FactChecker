@@ -120,6 +120,14 @@ class ApiStack(Stack):
             ),
             public_load_balancer=True,
         )
+        
+        # Configure CloudWatch logging for the API service container
+        # ApplicationLoadBalancedFargateService creates a default container that we can access
+        # The container's logging property can be set directly
+        container = self.fargate_service.task_definition.default_container
+        container.logging = ecs.LogDrivers.aws_logs(
+            stream_prefix="factchecker-api",
+        )
 
         # Configure health check
         self.fargate_service.target_group.configure_health_check(

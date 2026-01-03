@@ -11,7 +11,11 @@ if '/app' not in sys.path:
 
 from shared.sqs_client import receive_messages, delete_message
 from shared.database import init_db, sessionmaker, update_job_status_async, update_job_verified_claims_async
+from shared.logger import get_logger, bind_job_id
 from app.processor import verify_claims
+
+# Initialize logger with resource name
+logger = get_logger("claims-to-verified worker")
 
 # Global shutdown event
 shutdown_event = asyncio.Event()
@@ -19,7 +23,7 @@ shutdown_event = asyncio.Event()
 
 def signal_handler(sig, frame):
     """Handle shutdown signal."""
-    print("Shutdown signal received, finishing current work...")
+    logger.info("Shutdown signal received, finishing current work...")
     shutdown_event.set()
 
 
@@ -40,12 +44,15 @@ async def process_message(message_body: dict, session):
     job_id = message_body.get("job_id")
     claims = message_body.get("claims", [])
     
+    # Bind job_id to logger context
+    job_logger = bind_job_id(logger, job_id) if job_id else logger
+    
     if not job_id:
-        print(f"Invalid message: missing job_id")
+        job_logger.warning("Invalid message: missing job_id")
         return False
     
     if not claims:
-        print(f"Warning: No claims provided for job {job_id}")
+        job_logger.warning("No claims provided for job")
         # Mark as completed with empty results (async)
         await update_job_verified_claims_async(session, job_id, {
             "overall": {
@@ -58,7 +65,7 @@ async def process_message(message_body: dict, session):
         return True
     
     try:
-        print(f"Processing job {job_id}: verifying {len(claims)} claims")
+        job_logger.info("Processing job: verifying claims", claims_count=len(claims))
         
         openai_api_key = get_openai_api_key()
         if not openai_api_key:
@@ -66,14 +73,14 @@ async def process_message(message_body: dict, session):
         
         verified_claims = await verify_claims(claims, openai_api_key)
         
-        print(f"Successfully verified claims for job {job_id}")
+        job_logger.info("Successfully verified claims for job")
         
         # Update job with verified claims and mark as completed (async)
         await update_job_verified_claims_async(session, job_id, verified_claims)
         
         return True
     except Exception as e:
-        print(f"Error processing job {job_id}: {e}")
+        job_logger.error("Error processing job", exc_info=True, error=str(e))
         await update_job_status_async(session, job_id, "failed", str(e))
         return False
 
@@ -86,19 +93,21 @@ async def worker_task(semaphore: asyncio.Semaphore, message, queue_url):
             try:
                 message_body = json.loads(message["Body"])
                 receipt_handle = message["ReceiptHandle"]
+                job_id = message_body.get("job_id")
+                job_logger = bind_job_id(logger, job_id) if job_id else logger
                 
                 success = await process_message(message_body, session)
                 
                 if success:
                     await delete_message(queue_url, receipt_handle)
-                    print(f"Processed and deleted message for job {message_body.get('job_id')}")
+                    job_logger.info("Processed and deleted message")
                 else:
-                    print(f"Failed to process message, will retry")
+                    job_logger.warning("Failed to process message, will retry")
             except json.JSONDecodeError as e:
-                print(f"Error decoding message: {e}")
+                logger.error("Error decoding message", exc_info=True, error=str(e))
                 await delete_message(queue_url, message["ReceiptHandle"])
             except Exception as e:
-                print(f"Error processing message: {e}")
+                logger.error("Error processing message", exc_info=True, error=str(e))
 
 
 async def main_async():
@@ -116,8 +125,7 @@ async def main_async():
     max_concurrent = int(os.getenv("MAX_CONCURRENT_MESSAGES", "10"))
     semaphore = asyncio.Semaphore(max_concurrent)
     
-    print(f"Starting async Claims-to-Verified worker, listening to queue: {queue_url}")
-    print(f"Max concurrent messages: {max_concurrent}")
+    logger.info("Starting async Claims-to-Verified worker", queue_url=queue_url, max_concurrent=max_concurrent)
     
     while not shutdown_event.is_set():
         try:
@@ -137,7 +145,7 @@ async def main_async():
             await asyncio.gather(*tasks, return_exceptions=True)
             
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            logger.error("Error in main loop", exc_info=True, error=str(e))
             await asyncio.sleep(5)
 
 
@@ -148,7 +156,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print("Claims-to-Verified worker shutting down")
+        logger.info("Claims-to-Verified worker shutting down")
 
 
 if __name__ == "__main__":

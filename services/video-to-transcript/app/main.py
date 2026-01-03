@@ -11,7 +11,11 @@ if '/app' not in sys.path:
 
 from shared.sqs_client import receive_messages, delete_message, send_message
 from shared.database import init_db, sessionmaker, update_job_status_async
+from shared.logger import get_logger, bind_job_id
 from app.processor import process_video
+
+# Initialize logger with resource name
+logger = get_logger("video-to-transcript worker")
 
 # Global shutdown event
 shutdown_event = asyncio.Event()
@@ -19,7 +23,7 @@ shutdown_event = asyncio.Event()
 
 def signal_handler(sig, frame):
     """Handle shutdown signal."""
-    print("Shutdown signal received, finishing current work...")
+    logger.info("Shutdown signal received, finishing current work...")
     shutdown_event.set()
 
 
@@ -32,12 +36,15 @@ async def process_message(message_body: dict, session):
     job_id = message_body.get("job_id")
     video_s3_key = message_body.get("video_s3_key")
     
+    # Bind job_id to logger context
+    job_logger = bind_job_id(logger, job_id) if job_id else logger
+    
     if not job_id or not video_s3_key:
-        print(f"Invalid message: missing job_id or video_s3_key")
+        job_logger.warning("Invalid message: missing job_id or video_s3_key")
         return False
     
     try:
-        print(f"Processing job {job_id}: extracting transcript and frames from {video_s3_key}")
+        job_logger.info("Processing job: extracting transcript and frames", video_s3_key=video_s3_key)
         
         video_bucket = os.getenv("VIDEO_BUCKET")
         assets_bucket = os.getenv("ASSETS_BUCKET")
@@ -49,9 +56,11 @@ async def process_message(message_body: dict, session):
             video_s3_key, job_id, video_bucket, assets_bucket, session
         )
         
-        print(f"Successfully processed video for job {job_id}")
-        print(f"  Transcript: {transcript_s3_key}")
-        print(f"  Frames: {frames_s3_prefix}")
+        job_logger.info(
+            "Successfully processed video",
+            transcript_s3_key=transcript_s3_key,
+            frames_s3_prefix=frames_s3_prefix
+        )
         
         # Send message to next queue (transcript-to-claims)
         next_queue_url = os.getenv("TRANSCRIPT_TO_CLAIMS_QUEUE_URL")
@@ -61,13 +70,13 @@ async def process_message(message_body: dict, session):
                 "transcript_s3_key": transcript_s3_key,
                 "frames_s3_prefix": frames_s3_prefix,
             })
-            print(f"Sent message to transcript-to-claims queue for job {job_id}")
+            job_logger.info("Sent message to transcript-to-claims queue")
         else:
-            print(f"Warning: TRANSCRIPT_TO_CLAIMS_QUEUE_URL not configured")
+            job_logger.warning("TRANSCRIPT_TO_CLAIMS_QUEUE_URL not configured")
         
         return True
     except Exception as e:
-        print(f"Error processing job {job_id}: {e}")
+        job_logger.error("Error processing job", exc_info=True, error=str(e))
         await update_job_status_async(session, job_id, "failed", str(e))
         return False
 
@@ -80,19 +89,21 @@ async def worker_task(semaphore: asyncio.Semaphore, message, queue_url):
             try:
                 message_body = json.loads(message["Body"])
                 receipt_handle = message["ReceiptHandle"]
+                job_id = message_body.get("job_id")
+                job_logger = bind_job_id(logger, job_id) if job_id else logger
                 
                 success = await process_message(message_body, session)
                 
                 if success:
                     await delete_message(queue_url, receipt_handle)
-                    print(f"Processed and deleted message for job {message_body.get('job_id')}")
+                    job_logger.info("Processed and deleted message")
                 else:
-                    print(f"Failed to process message, will retry")
+                    job_logger.warning("Failed to process message, will retry")
             except json.JSONDecodeError as e:
-                print(f"Error decoding message: {e}")
+                logger.error("Error decoding message", exc_info=True, error=str(e))
                 await delete_message(queue_url, message["ReceiptHandle"])
             except Exception as e:
-                print(f"Error processing message: {e}")
+                logger.error("Error processing message", exc_info=True, error=str(e))
 
 
 async def main_async():
@@ -110,8 +121,7 @@ async def main_async():
     max_concurrent = int(os.getenv("MAX_CONCURRENT_MESSAGES", "10"))
     semaphore = asyncio.Semaphore(max_concurrent)
     
-    print(f"Starting async Video-to-Transcript worker, listening to queue: {queue_url}")
-    print(f"Max concurrent messages: {max_concurrent}")
+    logger.info("Starting async Video-to-Transcript worker", queue_url=queue_url, max_concurrent=max_concurrent)
     
     while not shutdown_event.is_set():
         try:
@@ -131,7 +141,7 @@ async def main_async():
             await asyncio.gather(*tasks, return_exceptions=True)
             
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            logger.error("Error in main loop", exc_info=True, error=str(e))
             await asyncio.sleep(5)
 
 
@@ -142,7 +152,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print("Video-to-Transcript worker shutting down")
+        logger.info("Video-to-Transcript worker shutting down")
 
 
 if __name__ == "__main__":

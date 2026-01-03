@@ -14,14 +14,18 @@ if '/app' not in sys.path:
     sys.path.insert(0, '/app')
 
 from shared.database import init_db, sessionmaker
+from shared.logger import get_logger, bind_job_id
 from app.processor import process_sample_message
+
+# Initialize logger with resource name
+logger = get_logger("sample-worker")
 
 # Global shutdown event
 shutdown_event = asyncio.Event()
 
 def signal_handler(sig, frame):
     """Handle shutdown signal."""
-    print("Shutdown signal received, finishing current work...")
+    logger.info("Shutdown signal received, finishing current work...")
     shutdown_event.set()
 
 
@@ -52,20 +56,22 @@ async def worker_task(semaphore: asyncio.Semaphore, message_body: dict):
         async with sessionmaker() as session:
             try:
                 job_id = message_body.get("job_id")
+                job_logger = bind_job_id(logger, job_id) if job_id else logger
+                
                 if not job_id:
-                    print(f"Invalid message: missing job_id")
+                    job_logger.warning("Invalid message: missing job_id")
                     return False
                 
                 success = await process_sample_message(job_id, session)
                 
                 if success:
-                    print(f"Successfully processed message for job {job_id}")
+                    job_logger.info("Successfully processed message")
                 else:
-                    print(f"Failed to process message for job {job_id}")
+                    job_logger.warning("Failed to process message")
                 
                 return success
             except Exception as e:
-                print(f"Error processing message: {e}")
+                logger.error("Error processing message", exc_info=True, error=str(e))
                 return False
 
 
@@ -81,13 +87,15 @@ async def main_async():
     semaphore = asyncio.Semaphore(max_concurrent)
     
     # Create all dummy messages upfront
-    print(f"Creating dummy messages...")
+    logger.info("Creating dummy messages")
     all_messages = await create_dummy_messages(count=20)
-    print(f"Created {len(all_messages)} dummy messages")
+    logger.info("Created dummy messages", count=len(all_messages))
     
-    print(f"Starting sample worker")
-    print(f"Max concurrent messages: {max_concurrent}")
-    print(f"Processing {batch_size} messages per batch until shutdown...")
+    logger.info(
+        "Starting sample worker",
+        max_concurrent=max_concurrent,
+        batch_size=batch_size
+    )
     
     # Track which messages we've processed
     message_index = 0
@@ -107,7 +115,11 @@ async def main_async():
             if not batch_messages:
                 break
             
-            print(f"Processing batch of {len(batch_messages)} messages (total processed: {message_index})...")
+            logger.debug(
+                "Processing batch",
+                batch_size=len(batch_messages),
+                total_processed=message_index
+            )
             
             # Create tasks for the batch - each task will create its own session
             tasks = [
@@ -118,16 +130,21 @@ async def main_async():
             # Process batch concurrently (limited by semaphore)
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
-            # Print batch summary
+            # Log batch summary
             successful = sum(1 for r in results if r is True)
             failed = len(results) - successful
-            print(f"Batch complete: {successful} successful, {failed} failed")
+            logger.info(
+                "Batch complete",
+                successful=successful,
+                failed=failed,
+                total_processed=message_index
+            )
             
             # Small delay before next batch
             await asyncio.sleep(1)
             
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            logger.error("Error in main loop", exc_info=True, error=str(e))
             await asyncio.sleep(5)
 
 
@@ -138,7 +155,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print("Sample worker shutting down")
+        logger.info("Sample worker shutting down")
 
 
 if __name__ == "__main__":
