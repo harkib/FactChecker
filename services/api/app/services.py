@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.database import create_job_async, get_job_async, update_job_status_async
-from shared.sqs_client import send_message
 
 
 async def create_fact_check_job(db: AsyncSession, video_url: str) -> str:
@@ -22,7 +21,8 @@ async def create_fact_check_job(db: AsyncSession, video_url: str) -> str:
         await update_job_status_async(db, job_id, "failed", "URL_TO_VIDEO_QUEUE_URL not configured")
         raise ValueError("URL_TO_VIDEO_QUEUE_URL not configured")
     
-    message_sent = send_message(queue_url, {
+    from shared.sqs_client import send_message
+    message_sent = await send_message(queue_url, {
         "job_id": job_id,
         "video_url": video_url,
     })

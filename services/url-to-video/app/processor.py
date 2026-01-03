@@ -1,16 +1,22 @@
-"""Video download processor."""
+"""Video download processor (async)."""
 import yt_dlp
 import os
 import tempfile
 import sys
 
 from shared.s3_client import upload_file
-from shared.database import update_job_video_s3_key, update_job_status
+from shared.database import update_job_video_s3_key_async, update_job_status_async
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def download_video(url: str, job_id: str) -> str:
+async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
     """
-    Downloads a video from URL and uploads to S3.
+    Downloads a video from URL and uploads to S3 (async).
+    
+    Args:
+        url: Video URL to download
+        job_id: Job ID
+        session: Async database session
     
     Returns:
         S3 key of the uploaded video
@@ -29,18 +35,19 @@ def download_video(url: str, job_id: str) -> str:
     }
     
     try:
+        # Download video (synchronous operation - blocks event loop but acceptable)
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
-        # Upload to S3
+        # Upload to S3 (async)
         bucket = os.getenv("VIDEO_BUCKET")
         s3_key = f"videos/{job_id}.mp4"
         
-        if not upload_file(output_path, bucket, s3_key):
+        if not await upload_file(output_path, bucket, s3_key):
             raise RuntimeError("Failed to upload video to S3")
         
-        # Update job with S3 key
-        update_job_video_s3_key(job_id, s3_key)
+        # Update job with S3 key (async)
+        await update_job_video_s3_key_async(session, job_id, s3_key)
         
         # Cleanup
         os.remove(output_path)
@@ -53,6 +60,5 @@ def download_video(url: str, job_id: str) -> str:
             os.remove(output_path)
         if os.path.exists(temp_dir):
             os.rmdir(temp_dir)
-        update_job_status(job_id, "failed", f"Failed to download video: {str(e)}")
+        await update_job_status_async(session, job_id, "failed", f"Failed to download video: {str(e)}")
         raise
-

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
 from app.services import create_fact_check_job, get_job_by_id
-from shared.database import init_db_async, get_db
+from shared.database import init_db, get_db
 
 app = FastAPI(title="FactChecker API", version="1.0.0")
 
@@ -30,7 +30,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection pool on startup."""
-    await init_db_async()
+    await init_db()
 
 
 @app.post("/jobs", response_model=CreateJobResponse, status_code=201)

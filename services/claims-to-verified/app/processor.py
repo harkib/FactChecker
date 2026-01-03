@@ -1,16 +1,17 @@
-"""Claim verification processor."""
+"""Claim verification processor (async)."""
 import os
 import json
 import sys
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from app.prompts import get_prompt
-from shared.database import update_job_verified_claims, update_job_status
+from shared.database import update_job_verified_claims_async, update_job_status_async
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def verify_claims(claims: list, openai_api_key: str) -> dict:
+async def verify_claims(claims: list, openai_api_key: str) -> dict:
     """
-    Verify claims using OpenAI API.
+    Verify claims using OpenAI API (async).
     
     Args:
         claims: List of claims to verify
@@ -31,9 +32,9 @@ def verify_claims(claims: list, openai_api_key: str) -> dict:
     
     print(f"Verifying {len(claims)} claims...")
     
-    # Call OpenAI API
-    client = OpenAI(api_key=openai_api_key)
-    verification_response = client.responses.create(
+    # Call OpenAI API (async)
+    client = AsyncOpenAI(api_key=openai_api_key)
+    verification_response = await client.responses.create(
         model="gpt-5-nano",
         input=get_prompt(claims=claims)
     )
@@ -42,4 +43,3 @@ def verify_claims(claims: list, openai_api_key: str) -> dict:
     
     verification_data = json.loads(verification_output)
     return verification_data
-
