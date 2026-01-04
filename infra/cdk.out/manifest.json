@@ -763,7 +763,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/8742db7b62f4971315218310abc14642006ca63a235250c87a98bcd25f2d2241.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/71e790b1c1b1a6c78c00548058397e053b073fa34b25a71f277c5ebd28075bd9.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -878,18 +878,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ApiServiceSecurityGroupfromApiStackApiServiceLBSecurityGroup4ACFBE598000E36D58C6"
-          }
-        ],
-        "/ApiStack/ApiService/Service/TaskCount/Target/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ApiServiceTaskCountTarget6E69AB02"
-          }
-        ],
-        "/ApiStack/ApiService/Service/TaskCount/Target/CpuScaling/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ApiServiceTaskCountTargetCpuScalingDD19A78C"
           }
         ],
         "/ApiStack/ApiGateway/Resource": [
@@ -1032,7 +1020,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e169ef38baf0f3951a93ee9f11dd23f5870d020c99715877891a5f7c5a04c58f.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/44b7c38e8e5b3edb287efa10c863a614cb669046004a5baa3bf1e4a8cec2e944.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -1101,24 +1089,6 @@
             "data": "UrlToVideoWorkerServiceSecurityGroup6C25CAD8"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerServiceTaskCountTarget2C3649C6"
-          }
-        ],
-        "/WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/UrlToVideoWorkerQueueScaling/UpperPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperPolicy197698EF"
-          }
-        ],
-        "/WorkerStacks/UrlToVideoWorkerService/TaskCount/Target/UrlToVideoWorkerQueueScaling/UpperAlarm/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerServiceTaskCountTargetUrlToVideoWorkerQueueScalingUpperAlarmAB5B6E1B"
-          }
-        ],
         "/WorkerStacks/VideoToTranscriptWorkerTaskRole/Resource": [
           {
             "type": "aws:cdk:logicalId",
@@ -1153,24 +1123,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "VideoToTranscriptWorkerServiceSecurityGroupD2F0FE86"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerServiceTaskCountTarget01C4AA75"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/VideoToTranscriptWorkerQueueScaling/UpperPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperPolicyBAD4B8D0"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerService/TaskCount/Target/VideoToTranscriptWorkerQueueScaling/UpperAlarm/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerServiceTaskCountTargetVideoToTranscriptWorkerQueueScalingUpperAlarmE960AF34"
           }
         ],
         "/WorkerStacks/TranscriptToClaimsWorkerTaskRole/Resource": [
@@ -1209,24 +1161,6 @@
             "data": "TranscriptToClaimsWorkerServiceSecurityGroup132F374E"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerServiceTaskCountTargetE49D95F3"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/TranscriptToClaimsWorkerQueueScaling/UpperPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperPolicy3A2825F2"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerService/TaskCount/Target/TranscriptToClaimsWorkerQueueScaling/UpperAlarm/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerServiceTaskCountTargetTranscriptToClaimsWorkerQueueScalingUpperAlarmEA0737A5"
-          }
-        ],
         "/WorkerStacks/ClaimsToVerifiedWorkerTaskRole/Resource": [
           {
             "type": "aws:cdk:logicalId",
@@ -1261,24 +1195,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ClaimsToVerifiedWorkerServiceSecurityGroup1E4E5A21"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerServiceTaskCountTarget0D2B5825"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/ClaimsToVerifiedWorkerQueueScaling/UpperPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperPolicy264B71A6"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerService/TaskCount/Target/ClaimsToVerifiedWorkerQueueScaling/UpperAlarm/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerServiceTaskCountTargetClaimsToVerifiedWorkerQueueScalingUpperAlarmB5CD102E"
           }
         ],
         "/WorkerStacks/CDKMetadata/Default": [

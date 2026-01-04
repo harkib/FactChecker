@@ -7,8 +7,8 @@ from aws_cdk import (
     aws_ecr as ecr,
     aws_iam as iam,
     aws_secretsmanager as secretsmanager,
-    aws_applicationautoscaling as appscaling,
-    aws_cloudwatch as cloudwatch,
+    # aws_applicationautoscaling as appscaling,  # Unused - CloudWatch metrics disabled
+    # aws_cloudwatch as cloudwatch,  # Unused - CloudWatch metrics disabled
 )
 from constructs import Construct
 
@@ -270,26 +270,27 @@ class WorkerStacks(Stack):
         )
 
         # Auto-scaling based on queue depth
-        scalable_target = service.auto_scale_task_count(
-            min_capacity=1,
-            max_capacity=10,
-        )
-
-        # Note: Queue depth metric would need to be set up separately
-        # This is a placeholder for queue-based scaling
-        # Extract queue name from URL for CloudWatch metric dimension
-        queue_name = queue_url.split("/")[-1]
-        scalable_target.scale_on_metric(
-            f"{service_id}QueueScaling",
-            metric=cloudwatch.Metric(
-                namespace="AWS/SQS",
-                metric_name="ApproximateNumberOfMessagesVisible",
-                dimensions_map={"QueueName": queue_name},
-            ),
-            scaling_steps=[
-                appscaling.ScalingInterval(upper=0, change=0),
-                appscaling.ScalingInterval(lower=1, change=+1),
-                appscaling.ScalingInterval(lower=10, change=+2),
-            ],
-        )
+        # CloudWatch metrics disabled - scaling removed
+        # scalable_target = service.auto_scale_task_count(
+        #     min_capacity=1,
+        #     max_capacity=10,
+        # )
+        #
+        # # Note: Queue depth metric would need to be set up separately
+        # # This is a placeholder for queue-based scaling
+        # # Extract queue name from URL for CloudWatch metric dimension
+        # queue_name = queue_url.split("/")[-1]
+        # scalable_target.scale_on_metric(
+        #     f"{service_id}QueueScaling",
+        #     metric=cloudwatch.Metric(
+        #         namespace="AWS/SQS",
+        #         metric_name="ApproximateNumberOfMessagesVisible",
+        #         dimensions_map={"QueueName": queue_name},
+        #     ),
+        #     scaling_steps=[
+        #         appscaling.ScalingInterval(upper=0, change=0),
+        #         appscaling.ScalingInterval(lower=1, change=+1),
+        #         appscaling.ScalingInterval(lower=10, change=+2),
+        #     ],
+        # )
 

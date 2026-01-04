@@ -663,79 +663,6 @@
     "aws:cdk:path": "ApiStack/ApiService/Service/SecurityGroup/from ApiStackApiServiceLBSecurityGroup4ACFBE59:8000"
    }
   },
-  "ApiServiceTaskCountTarget6E69AB02": {
-   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
-   "Properties": {
-    "MaxCapacity": 10,
-    "MinCapacity": 1,
-    "ResourceId": {
-     "Fn::Join": [
-      "",
-      [
-       "service/",
-       {
-        "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
-       },
-       "/",
-       {
-        "Fn::GetAtt": [
-         "ApiService199661B5",
-         "Name"
-        ]
-       }
-      ]
-     ]
-    },
-    "RoleARN": {
-     "Fn::Join": [
-      "",
-      [
-       "arn:",
-       {
-        "Ref": "AWS::Partition"
-       },
-       ":iam::",
-       {
-        "Ref": "AWS::AccountId"
-       },
-       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
-      ]
-     ]
-    },
-    "ScalableDimension": "ecs:service:DesiredCount",
-    "ServiceNamespace": "ecs"
-   },
-   "DependsOn": [
-    "ApiTaskRoleDefaultPolicyBEF5D530",
-    "ApiTaskRole12FAD4A7"
-   ],
-   "Metadata": {
-    "aws:cdk:path": "ApiStack/ApiService/Service/TaskCount/Target/Resource"
-   }
-  },
-  "ApiServiceTaskCountTargetCpuScalingDD19A78C": {
-   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
-   "Properties": {
-    "PolicyName": "ApiStackApiServiceTaskCountTargetCpuScaling70D30F01",
-    "PolicyType": "TargetTrackingScaling",
-    "ScalingTargetId": {
-     "Ref": "ApiServiceTaskCountTarget6E69AB02"
-    },
-    "TargetTrackingScalingPolicyConfiguration": {
-     "PredefinedMetricSpecification": {
-      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
-     },
-     "TargetValue": 70
-    }
-   },
-   "DependsOn": [
-    "ApiTaskRoleDefaultPolicyBEF5D530",
-    "ApiTaskRole12FAD4A7"
-   ],
-   "Metadata": {
-    "aws:cdk:path": "ApiStack/ApiService/Service/TaskCount/Target/CpuScaling/Resource"
-   }
-  },
   "ApiGateway11E7F47B": {
    "Type": "AWS::ApiGateway::RestApi",
    "Properties": {
@@ -780,7 +707,7 @@
      {
       "DataTraceEnabled": false,
       "HttpMethod": "*",
-      "MetricsEnabled": true,
+      "MetricsEnabled": false,
       "ResourcePath": "/*",
       "ThrottlingBurstLimit": 100,
       "ThrottlingRateLimit": 50
@@ -1052,7 +979,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/31S207DMAz9lr13YRv8AIyLECCmdTwjL/WKWZZUSQqqqv47TtKNFhBSpByf2D6244WYX8zEbAKfbiqL/VTRVrS5B7nP1uhMbSVm/PbaEhxEuzYKs+VOx3tlFMkmmAl1GUr3WoH3aLUTl1XFLHgy+tFAcQUKtMTiFmwJHnO0H8S5UYHzJBV7bKMH6fJjIdq/o21QG9lDP3Iede9zxIP3DSujv7OmroLLwAyVs2aOsrbkm5PL/8RNadG5X/S9jnychmj7djfg9te4I02hkiQ/Zoz2QFzxgPsxqiiUYC65/62KaZem1r7LlClZ7tGUp2KPuMvgewhQe+M4msfMDZ/ShFFEgTGTro3ldeCAPMV9//uICDIU6v2EhjcFnb+sKC5LD6+xUqY5oI5KA4vXrUztRXDcuytwmD2hfzNFeOzRaStT5oQ5/QPGknr04jjTinckcH8b7NZ1gXmufVX7UT7G/CFF/IYuWzWsrM/OxZzPfPLuiKaWh04HFOt0fwG0YFd6RwMAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/31SYU/CMBD9LXwfFdA/AKLGiJEAfiZnd8yT0jZtB1mW/Xev3SBDjcmSvnv3eu9214kY343EaAAnP5T5fqjoQ9TrAHKfrdCb0knMOLetCQ6iXhmF2f1Op3NpFMkqhi1qMpR+ayEEdNqLqbXMQiCjFwbyGSjQEvNHcAUEXKM7EtdGBT6QVKz4SArSxXEi6r9vu+h2Ffd15APqTnPGvfyGnTE8OVPaKOmFsXP2XKMsHYXqIvmfeCgcev+LftaJT9MQdfe7G/D7Oe5IU+yktb9mjA5A3HGP+zGqZJRgkylTcPGFKS6tnXGTgaV47QQVLwx9mFpKO+vgHK0y1QF1iGwv4q0XrUsC5/XPwGP2iuHT5DHZocvjaCu3mMu/YHoRHXr3XGnJq4rc3wHLmiYyb2WwZbiqx5jnkqdpNNmyYmd9cyvG/I0HX55o6Eod6IBi1Z7fLfLlls4CAAA="
    },
    "Metadata": {
     "aws:cdk:path": "ApiStack/CDKMetadata/Default"

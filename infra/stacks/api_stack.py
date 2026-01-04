@@ -139,13 +139,14 @@ class ApiStack(Stack):
         )
 
         # Auto-scaling
-        scalable_target = self.fargate_service.service.auto_scale_task_count(
-            min_capacity=1, max_capacity=10
-        )
-        scalable_target.scale_on_cpu_utilization(
-            "CpuScaling",
-            target_utilization_percent=70,
-        )
+        # CloudWatch metrics disabled - CPU-based scaling removed (uses CloudWatch metrics)
+        # scalable_target = self.fargate_service.service.auto_scale_task_count(
+        #     min_capacity=1, max_capacity=10
+        # )
+        # scalable_target.scale_on_cpu_utilization(
+        #     "CpuScaling",
+        #     target_utilization_percent=70,
+        # )
 
         # Create API Gateway REST API in front of ALB
         # REST API supports throttling, API keys, and usage plans out of the box
@@ -173,7 +174,7 @@ class ApiStack(Stack):
                 # aws iam create-role --role-name api-gateway-cloudwatch-logs-role --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"apigateway.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
                 # aws iam attach-role-policy --role-name api-gateway-cloudwatch-logs-role --policy-arn arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
                 # aws apigateway put-account --cloudwatch-role-arn arn:aws:iam::ACCOUNT_ID:role/api-gateway-cloudwatch-logs-role
-                metrics_enabled=True,  # Metrics don't require the role
+                metrics_enabled=False,  # CloudWatch metrics disabled
             ),
         )
 
