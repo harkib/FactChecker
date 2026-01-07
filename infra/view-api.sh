@@ -26,7 +26,36 @@ aws cloudformation describe-stacks \
   --output text 2>/dev/null || echo "  (Output not found - may need to redeploy with outputs)"
 
 echo ""
-echo "3. Load Balancer Details:"
+echo "3. API Key:"
+API_KEY_ID=$(aws cloudformation describe-stacks \
+  --stack-name "$STACK_NAME" \
+  --region "$REGION" \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiKeyId`].OutputValue' \
+  --output text 2>/dev/null)
+
+if [ -n "$API_KEY_ID" ] && [ "$API_KEY_ID" != "None" ]; then
+  echo "  API Key ID: $API_KEY_ID"
+  API_KEY_VALUE=$(aws apigateway get-api-key \
+    --api-key "$API_KEY_ID" \
+    --include-value \
+    --region "$REGION" \
+    --query 'value' \
+    --output text 2>/dev/null)
+  
+  if [ -n "$API_KEY_VALUE" ]; then
+    echo "  API Key Value: $API_KEY_VALUE"
+    echo ""
+    echo "  Usage: Add this header to your API requests:"
+    echo "    x-api-key: $API_KEY_VALUE"
+  else
+    echo "  (Could not retrieve API key value - check AWS permissions)"
+  fi
+else
+  echo "  (API Key ID not found in stack outputs)"
+fi
+
+echo ""
+echo "4. Load Balancer Details:"
 LB_ARN=$(aws cloudformation describe-stack-resources \
   --stack-name "$STACK_NAME" \
   --region "$REGION" \
@@ -47,7 +76,7 @@ else
 fi
 
 echo ""
-echo "4. ECS Service Status:"
+echo "5. ECS Service Status:"
 CLUSTER_NAME=$(aws cloudformation describe-stack-resources \
   --stack-name "$STACK_NAME" \
   --region "$REGION" \
@@ -81,7 +110,7 @@ if [ -n "$CLUSTER_NAME" ]; then
 fi
 
 echo ""
-echo "5. Test API Health Endpoint:"
+echo "6. Test API Health Endpoint:"
 if [ -n "$LB_DNS" ]; then
   echo "  Testing: http://$LB_DNS/health"
   curl -s -o /dev/null -w "  Status: %{http_code}\n" "http://$LB_DNS/health" || echo "  (Could not reach endpoint - service may still be starting)"
@@ -94,6 +123,10 @@ echo "=== Quick Access Commands ==="
 echo ""
 echo "Get API endpoint:"
 echo "  aws cloudformation describe-stacks --stack-name ApiStack --query 'Stacks[0].Outputs[?OutputKey==\`ApiEndpoint\`].OutputValue' --output text"
+echo ""
+echo "Get API key:"
+echo "  API_KEY_ID=\$(aws cloudformation describe-stacks --stack-name ApiStack --query 'Stacks[0].Outputs[?OutputKey==\`ApiKeyId\`].OutputValue' --output text)"
+echo "  aws apigateway get-api-key --api-key \$API_KEY_ID --include-value --query 'value' --output text"
 echo ""
 echo "Test health endpoint:"
 if [ -n "$LB_DNS" ]; then

@@ -212,3 +212,10 @@ downloads/
 
 # secret
 .secret
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcscheme
+!*.xcscheme

@@ -1,8 +1,9 @@
 """FastAPI REST API service for fact-checking jobs."""
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
+import re
 
 # Add shared directory to path
 # From /app/app/main.py, go up one level to /app, then shared is at /app/shared
@@ -10,14 +11,57 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional, List
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
-from app.services import create_fact_check_job, get_job_by_id
+from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id
 from shared.database import init_db, get_db
 from shared.logger import get_logger, bind_job_id
 
 # Initialize logger with resource name
 logger = get_logger("api")
+
+# UUID validation regex (matches standard UUID format)
+UUID_REGEX = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE
+)
+
+
+def validate_client_id(client_id: Optional[str]) -> Optional[str]:
+    """Validate client ID format (should be UUID format).
+    
+    Args:
+        client_id: Client ID string to validate
+        
+    Returns:
+        Validated client ID or None if invalid/empty
+    """
+    if not client_id:
+        return None
+    
+    # Strip whitespace
+    client_id = client_id.strip()
+    
+    # Check if it matches UUID format
+    if UUID_REGEX.match(client_id):
+        return client_id
+    
+    # If it doesn't match, log warning but don't reject (for backwards compatibility)
+    logger.warning("Client ID does not match UUID format", client_id=client_id)
+    return client_id
+
+
+async def get_client_id(x_client_id: Optional[str] = Header(None, alias="X-Client-ID")) -> Optional[str]:
+    """FastAPI dependency to extract and validate client ID from header.
+    
+    Args:
+        x_client_id: Client ID from X-Client-ID header
+        
+    Returns:
+        Validated client ID or None
+    """
+    return validate_client_id(x_client_id)
 
 app = FastAPI(title="FactChecker API", version="1.0.0")
 
@@ -39,15 +83,53 @@ async def startup_event():
     logger.info("Database connection pool initialized")
 
 
+@app.get("/jobs", response_model=List[JobResponse])
+async def get_jobs(
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id)
+):
+    """Get last 10 jobs for a client_id, ordered by creation date (most recent first)."""
+    try:
+        # Client ID is required
+        if not client_id:
+            logger.warning("Missing client ID in request")
+            raise HTTPException(status_code=400, detail="X-Client-ID header is required")
+        
+        logger.debug("Getting jobs for client", client_id=client_id)
+        jobs = await get_jobs_by_client_id(db, client_id)
+        logger.debug("Jobs retrieved successfully", count=len(jobs), client_id=client_id)
+        return [JobResponse(**job) for job in jobs]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get jobs", exc_info=True, error=str(e), client_id=client_id)
+        raise HTTPException(status_code=500, detail=f"Failed to get jobs: {str(e)}")
+
+
 @app.post("/jobs", response_model=CreateJobResponse, status_code=201)
-async def create_job(request: CreateJobRequest, db: AsyncSession = Depends(get_db)):
+async def create_job(
+    request: CreateJobRequest,
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id)
+):
     """Create a new fact-checking job."""
     try:
-        logger.info("Creating new fact-checking job", video_url=str(request.video_url))
-        job_id = await create_fact_check_job(db, str(request.video_url))
+        # Client ID is required
+        if not client_id:
+            logger.warning("Missing client ID in request")
+            raise HTTPException(status_code=400, detail="X-Client-ID header is required")
+        
+        logger.info(
+            "Creating new fact-checking job",
+            video_url=str(request.video_url),
+            client_id=client_id
+        )
+        job_id = await create_fact_check_job(db, str(request.video_url), client_id=client_id)
         job_logger = bind_job_id(logger, job_id)
-        job_logger.info("Job created successfully", status="pending")
+        job_logger.info("Job created successfully", status="pending", client_id=client_id)
         return CreateJobResponse(job_id=job_id, status="pending")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Failed to create job", exc_info=True, error=str(e), video_url=str(request.video_url))
         raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")

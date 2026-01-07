@@ -7,7 +7,6 @@ from datetime import datetime
 class CreateJobRequest(BaseModel):
     video_url: HttpUrl
 
-
 class JobResponse(BaseModel):
     id: str
     video_url: str
@@ -20,6 +19,7 @@ class JobResponse(BaseModel):
     claims: Optional[List[str]] = None
     verified_claims: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
+    client_id: str
 
     class Config:
         from_attributes = True
