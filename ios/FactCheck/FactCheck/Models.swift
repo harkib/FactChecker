@@ -32,6 +32,8 @@ struct JobResponse: Codable {
     let claims: [String]?
     let verified_claims: VerifiedClaims?
     let error_message: String?
+    let client_id: String
+    let title: String?
 }
 
 // MARK: - Verified Claims Structure

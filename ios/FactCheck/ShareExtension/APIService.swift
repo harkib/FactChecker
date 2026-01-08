@@ -1,8 +1,8 @@
 //
 //  APIService.swift
-//  FactCheck
+//  ShareExtension
 //
-//  Created on 12/30/25.
+//  Created on 1/8/26.
 //
 
 import Foundation
@@ -115,80 +115,6 @@ class APIService {
             let decoder = JSONDecoder()
             let jobResponse = try decoder.decode(CreateJobResponse.self, from: data)
             return jobResponse
-            
-        } catch let error as APIError {
-            throw error
-        } catch let error as DecodingError {
-            throw APIError.decodingError(error)
-        } catch {
-            throw APIError.networkError(error)
-        }
-    }
-    
-    // MARK: - Get Job
-    
-    func getJob(jobId: String) async throws -> JobResponse {
-        guard let url = URL(string: "\(baseURL)/jobs/\(jobId)") else {
-            throw APIError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        addAPIKey(to: &request)
-        addClientID(to: &request)
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
-            }
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                let errorMessage = extractErrorMessage(from: data)
-                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
-            }
-            
-            let decoder = JSONDecoder()
-            let jobResponse = try decoder.decode(JobResponse.self, from: data)
-            return jobResponse
-            
-        } catch let error as APIError {
-            throw error
-        } catch let error as DecodingError {
-            throw APIError.decodingError(error)
-        } catch {
-            throw APIError.networkError(error)
-        }
-    }
-    
-    // MARK: - Get Jobs
-    
-    func getJobs() async throws -> [JobResponse] {
-        guard let url = URL(string: "\(baseURL)/jobs") else {
-            throw APIError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        addAPIKey(to: &request)
-        addClientID(to: &request)
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
-            }
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                let errorMessage = extractErrorMessage(from: data)
-                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
-            }
-            
-            let decoder = JSONDecoder()
-            let jobs = try decoder.decode([JobResponse].self, from: data)
-            return jobs
             
         } catch let error as APIError {
             throw error
