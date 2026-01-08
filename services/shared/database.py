@@ -27,6 +27,7 @@ class Job(Base):
     verified_claims = Column(JSONB, nullable=True)
     error_message = Column(Text, nullable=True)
     client_id = Column(String(255), nullable=False, index=True)
+    title = Column(Text, nullable=True)
 
 
 # Module-level database configuration
@@ -139,14 +140,16 @@ async def update_job_transcript_s3_key_async(session: AsyncSession, job_id: str,
         raise
 
 
-async def update_job_claims_async(session: AsyncSession, job_id: str, claims: list):
-    """Update job with extracted claims (async, requires session)."""
+async def update_job_claims_async(session: AsyncSession, job_id: str, claims: list, title: Optional[str] = None):
+    """Update job with extracted claims and optional title (async, requires session)."""
     try:
         stmt = select(Job).where(Job.id == uuid.UUID(job_id))
         result = await session.execute(stmt)
         job = result.scalar_one_or_none()
         if job:
             job.claims = claims
+            if title is not None:
+                job.title = title
             job.status = "extracting"
             await session.commit()
     except Exception as e:
@@ -188,6 +191,7 @@ async def get_job_async(session: AsyncSession, job_id: str) -> Optional[Dict[str
             "verified_claims": job.verified_claims,
             "error_message": job.error_message,
             "client_id": job.client_id,
+            "title": job.title,
         }
     return None
 
@@ -225,6 +229,7 @@ async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, lim
             "verified_claims": job.verified_claims,
             "error_message": job.error_message,
             "client_id": job.client_id,
+            "title": job.title,
         }
         for job in jobs
     ]

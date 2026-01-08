@@ -4,6 +4,7 @@ import json
 import base64
 import tempfile
 import sys
+from typing import Optional, Tuple, List
 
 from openai import AsyncOpenAI
 from app.prompts import get_prompt
@@ -12,9 +13,9 @@ from shared.database import update_job_claims_async, update_job_status_async
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def extract_claims(job_id: str, transcript_s3_key: str, frames_s3_prefix: str, assets_bucket: str, openai_api_key: str, session: AsyncSession) -> list:
+async def extract_claims(job_id: str, transcript_s3_key: str, frames_s3_prefix: str, assets_bucket: str, openai_api_key: str, session: AsyncSession) -> Tuple[List[str], Optional[str]]:
     """
-    Extract claims from transcript and frames (async).
+    Extract claims and title from transcript and frames (async).
     
     Args:
         job_id: Job ID
@@ -25,7 +26,7 @@ async def extract_claims(job_id: str, transcript_s3_key: str, frames_s3_prefix: 
         session: Async database session
     
     Returns:
-        List of extracted claims
+        Tuple of (list of extracted claims, title string or None)
     """
     temp_dir = tempfile.mkdtemp()
     transcript_path = os.path.join(temp_dir, "transcript.txt")
@@ -70,6 +71,7 @@ async def extract_claims(job_id: str, transcript_s3_key: str, frames_s3_prefix: 
         extraction_data = json.loads(extraction_output)
         claims = extraction_data.get("claims", [])
         notes = extraction_data.get("notes", [])
+        title = extraction_data.get("title")
         
         if notes:
             print(f"Notes: {notes}")
@@ -78,7 +80,7 @@ async def extract_claims(job_id: str, transcript_s3_key: str, frames_s3_prefix: 
         import shutil
         shutil.rmtree(temp_dir)
         
-        return claims
+        return claims, title
         
     except Exception as e:
         # Cleanup on error

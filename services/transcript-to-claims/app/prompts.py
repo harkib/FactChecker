@@ -8,7 +8,8 @@ Turn the user input into a list of atomic, checkable claims.
 Output JSON schema:
 {
   "claims": ["string", "..."],
-  "notes": ["string", "..."]
+  "notes": ["string", "..."],
+  "title": "string"
 }
 
 Rules:
@@ -18,6 +19,7 @@ Rules:
 - Do NOT verify, do NOT judge truth, do NOT add outside facts.
 - If the input is mostly opinion/prediction, still extract any embedded factual claims.
 - If there are zero factual claims, return an empty list for "claims" and a note for "notes".
+- Generate a concise title (5-15 words) that summarizes the extracted claims.
 - Output ONLY valid JSON exactly. No markdown.
 - Consider both the transcript text and any visual information from the images when extracting claims.
 """

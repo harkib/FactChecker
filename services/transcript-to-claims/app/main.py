@@ -67,14 +67,14 @@ async def process_message(message_body: dict, session):
         if not openai_api_key:
             raise ValueError("OpenAI API key not found")
         
-        claims = await extract_claims(
+        claims, title = await extract_claims(
             job_id, transcript_s3_key, frames_s3_prefix, assets_bucket, openai_api_key, session
         )
         
-        job_logger.info("Extracted claims", claims_count=len(claims))
+        job_logger.info("Extracted claims", claims_count=len(claims), title=title)
         
-        # Update job with claims (async)
-        await update_job_claims_async(session, job_id, claims)
+        # Update job with claims and title (async)
+        await update_job_claims_async(session, job_id, claims, title)
         
         # Send message to next queue (claims-to-verified)
         next_queue_url = os.getenv("CLAIMS_TO_VERIFIED_QUEUE_URL")

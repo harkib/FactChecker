@@ -20,6 +20,7 @@ class JobResponse(BaseModel):
     verified_claims: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
     client_id: str
+    title: Optional[str] = None
 
     class Config:
         from_attributes = True
