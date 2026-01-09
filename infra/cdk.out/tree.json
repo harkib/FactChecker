@@ -788,7 +788,23 @@
                     "lifecyclePolicy": {
                       "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
                     },
-                    "repositoryName": "factchecker/url-to-video"
+                    "repositoryName": "factchecker/url-to-video",
+                    "repositoryPolicyText": {
+                      "Statement": [
+                        {
+                          "Action": [
+                            "ecr:BatchCheckLayerAvailability",
+                            "ecr:BatchGetImage",
+                            "ecr:GetDownloadUrlForLayer"
+                          ],
+                          "Effect": "Allow",
+                          "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    }
                   }
                 },
                 "constructInfo": {
@@ -938,14 +954,6 @@
                   "version": "2.140.0"
                 }
               },
-              "Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}",
-                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
               "Output{\"Fn::GetAtt\":[\"videototranscriptRepository1F507E67\",\"Arn\"]}": {
                 "id": "Output{\"Fn::GetAtt\":[\"videototranscriptRepository1F507E67\",\"Arn\"]}",
                 "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"videototranscriptRepository1F507E67\",\"Arn\"]}",
@@ -965,6 +973,14 @@
               "Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}": {
                 "id": "Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}",
                 "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}",
+                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -3611,9 +3627,6 @@
                                   "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
                                 },
                                 {
-                                  "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
-                                },
-                                {
                                   "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
                                 }
                               ]
@@ -3639,12 +3652,6 @@
                                 {
                                   "Fn::GetAtt": [
                                     "TranscriptToClaimsWorkerTaskDefTranscriptToClaimsWorkerContainerLogGroup323B9688",
-                                    "Arn"
-                                  ]
-                                },
-                                {
-                                  "Fn::GetAtt": [
-                                    "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37",
                                     "Arn"
                                   ]
                                 },
@@ -3716,13 +3723,13 @@
               "version": "2.140.0"
             }
           },
-          "UrlToVideoWorkerTaskRole": {
-            "id": "UrlToVideoWorkerTaskRole",
-            "path": "WorkerStacks/UrlToVideoWorkerTaskRole",
+          "UrlToVideoWorkerLambdaRole": {
+            "id": "UrlToVideoWorkerLambdaRole",
+            "path": "WorkerStacks/UrlToVideoWorkerLambdaRole",
             "children": {
-              "ImportUrlToVideoWorkerTaskRole": {
-                "id": "ImportUrlToVideoWorkerTaskRole",
-                "path": "WorkerStacks/UrlToVideoWorkerTaskRole/ImportUrlToVideoWorkerTaskRole",
+              "ImportUrlToVideoWorkerLambdaRole": {
+                "id": "ImportUrlToVideoWorkerLambdaRole",
+                "path": "WorkerStacks/UrlToVideoWorkerLambdaRole/ImportUrlToVideoWorkerLambdaRole",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.Resource",
                   "version": "2.140.0"
@@ -3730,7 +3737,7 @@
               },
               "Resource": {
                 "id": "Resource",
-                "path": "WorkerStacks/UrlToVideoWorkerTaskRole/Resource",
+                "path": "WorkerStacks/UrlToVideoWorkerLambdaRole/Resource",
                 "attributes": {
                   "aws:cdk:cloudformation:type": "AWS::IAM::Role",
                   "aws:cdk:cloudformation:props": {
@@ -3740,12 +3747,38 @@
                           "Action": "sts:AssumeRole",
                           "Effect": "Allow",
                           "Principal": {
-                            "Service": "ecs-tasks.amazonaws.com"
+                            "Service": "lambda.amazonaws.com"
                           }
                         }
                       ],
                       "Version": "2012-10-17"
-                    }
+                    },
+                    "managedPolicyArns": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                          ]
+                        ]
+                      }
+                    ]
                   }
                 },
                 "constructInfo": {
@@ -3755,11 +3788,11 @@
               },
               "DefaultPolicy": {
                 "id": "DefaultPolicy",
-                "path": "WorkerStacks/UrlToVideoWorkerTaskRole/DefaultPolicy",
+                "path": "WorkerStacks/UrlToVideoWorkerLambdaRole/DefaultPolicy",
                 "children": {
                   "Resource": {
                     "id": "Resource",
-                    "path": "WorkerStacks/UrlToVideoWorkerTaskRole/DefaultPolicy/Resource",
+                    "path": "WorkerStacks/UrlToVideoWorkerLambdaRole/DefaultPolicy/Resource",
                     "attributes": {
                       "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
                       "aws:cdk:cloudformation:props": {
@@ -3840,10 +3873,10 @@
                           ],
                           "Version": "2012-10-17"
                         },
-                        "policyName": "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E",
+                        "policyName": "UrlToVideoWorkerLambdaRoleDefaultPolicyE1E56FED",
                         "roles": [
                           {
-                            "Ref": "UrlToVideoWorkerTaskRole303FCA01"
+                            "Ref": "UrlToVideoWorkerLambdaRoleD351B0A1"
                           }
                         ]
                       }
@@ -3865,327 +3898,208 @@
               "version": "2.140.0"
             }
           },
-          "UrlToVideoWorkerTaskDef": {
-            "id": "UrlToVideoWorkerTaskDef",
-            "path": "WorkerStacks/UrlToVideoWorkerTaskDef",
+          "UrlToVideoWorkerLambdaSecurityGroup": {
+            "id": "UrlToVideoWorkerLambdaSecurityGroup",
+            "path": "WorkerStacks/UrlToVideoWorkerLambdaSecurityGroup",
             "children": {
               "Resource": {
                 "id": "Resource",
-                "path": "WorkerStacks/UrlToVideoWorkerTaskDef/Resource",
+                "path": "WorkerStacks/UrlToVideoWorkerLambdaSecurityGroup/Resource",
                 "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::ECS::TaskDefinition",
+                  "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
                   "aws:cdk:cloudformation:props": {
-                    "containerDefinitions": [
+                    "groupDescription": "Security group for UrlToVideoWorker Lambda",
+                    "securityGroupEgress": [
                       {
-                        "essential": true,
-                        "image": {
-                          "Fn::Join": [
-                            "",
-                            [
-                              {
-                                "Fn::Select": [
-                                  4,
-                                  {
-                                    "Fn::Split": [
-                                      ":",
-                                      {
-                                        "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              ".dkr.ecr.",
-                              {
-                                "Fn::Select": [
-                                  3,
-                                  {
-                                    "Fn::Split": [
-                                      ":",
-                                      {
-                                        "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              ".",
-                              {
-                                "Ref": "AWS::URLSuffix"
-                              },
-                              "/",
-                              {
-                                "Fn::ImportValue": "EcrStack:ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
-                              },
-                              ":latest"
-                            ]
-                          ]
-                        },
-                        "name": "UrlToVideoWorkerContainer",
-                        "logConfiguration": {
-                          "logDriver": "awslogs",
-                          "options": {
-                            "awslogs-group": {
-                              "Ref": "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37"
-                            },
-                            "awslogs-stream-prefix": "factchecker-url-to-video",
-                            "awslogs-region": {
-                              "Ref": "AWS::Region"
-                            }
-                          }
-                        },
-                        "environment": [
-                          {
-                            "name": "URL_TO_VIDEO_QUEUE_URL",
-                            "value": {
-                              "Fn::ImportValue": "QueueStack:ExportsOutputRefUrlToVideoQueue9766BE39B6F3CF36"
-                            }
-                          },
-                          {
-                            "name": "VIDEO_BUCKET",
-                            "value": {
-                              "Fn::ImportValue": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
-                            }
-                          },
-                          {
-                            "name": "VIDEO_TO_TRANSCRIPT_QUEUE_URL",
-                            "value": {
-                              "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
-                            }
-                          },
-                          {
-                            "name": "AWS_REGION",
-                            "value": {
-                              "Ref": "AWS::Region"
-                            }
-                          },
-                          {
-                            "name": "DB_HOST",
-                            "value": {
-                              "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
-                            }
-                          },
-                          {
-                            "name": "DB_PORT",
-                            "value": "5432"
-                          },
-                          {
-                            "name": "DB_NAME",
-                            "value": "factchecker"
-                          }
-                        ],
-                        "secrets": [
-                          {
-                            "name": "DB_USER",
-                            "valueFrom": {
-                              "Fn::Join": [
-                                "",
-                                [
-                                  {
-                                    "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-                                  },
-                                  ":username::"
-                                ]
-                              ]
-                            }
-                          },
-                          {
-                            "name": "DB_PASSWORD",
-                            "valueFrom": {
-                              "Fn::Join": [
-                                "",
-                                [
-                                  {
-                                    "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-                                  },
-                                  ":password::"
-                                ]
-                              ]
-                            }
-                          },
-                          {
-                            "name": "OPENAI_API_KEY",
-                            "valueFrom": {
-                              "Fn::Join": [
-                                "",
-                                [
-                                  "arn:",
-                                  {
-                                    "Ref": "AWS::Partition"
-                                  },
-                                  ":secretsmanager:",
-                                  {
-                                    "Ref": "AWS::Region"
-                                  },
-                                  ":",
-                                  {
-                                    "Ref": "AWS::AccountId"
-                                  },
-                                  ":secret:factchecker/openai-api-key:OPENAI_API_KEY::"
-                                ]
-                              ]
-                            }
-                          }
-                        ]
+                        "cidrIp": "0.0.0.0/0",
+                        "description": "Allow all outbound traffic by default",
+                        "ipProtocol": "-1"
                       }
                     ],
-                    "cpu": "512",
-                    "executionRoleArn": {
-                      "Fn::GetAtt": [
-                        "WorkerExecutionRole8A72FF4F",
-                        "Arn"
-                      ]
-                    },
-                    "family": "WorkerStacksUrlToVideoWorkerTaskDef723339AE",
-                    "memory": "1024",
-                    "networkMode": "awsvpc",
-                    "requiresCompatibilities": [
-                      "FARGATE"
-                    ],
-                    "taskRoleArn": {
-                      "Fn::GetAtt": [
-                        "UrlToVideoWorkerTaskRole303FCA01",
-                        "Arn"
-                      ]
+                    "vpcId": {
+                      "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
                     }
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_ecs.CfnTaskDefinition",
-                  "version": "2.140.0"
-                }
-              },
-              "UrlToVideoWorkerContainer": {
-                "id": "UrlToVideoWorkerContainer",
-                "path": "WorkerStacks/UrlToVideoWorkerTaskDef/UrlToVideoWorkerContainer",
-                "children": {
-                  "LogGroup": {
-                    "id": "LogGroup",
-                    "path": "WorkerStacks/UrlToVideoWorkerTaskDef/UrlToVideoWorkerContainer/LogGroup",
-                    "children": {
-                      "Resource": {
-                        "id": "Resource",
-                        "path": "WorkerStacks/UrlToVideoWorkerTaskDef/UrlToVideoWorkerContainer/LogGroup/Resource",
-                        "attributes": {
-                          "aws:cdk:cloudformation:type": "AWS::Logs::LogGroup",
-                          "aws:cdk:cloudformation:props": {}
-                        },
-                        "constructInfo": {
-                          "fqn": "aws-cdk-lib.aws_logs.CfnLogGroup",
-                          "version": "2.140.0"
-                        }
-                      }
-                    },
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_logs.LogGroup",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_ecs.ContainerDefinition",
+                  "fqn": "aws-cdk-lib.aws_ec2.CfnSecurityGroup",
                   "version": "2.140.0"
                 }
               }
             },
             "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_ecs.FargateTaskDefinition",
+              "fqn": "aws-cdk-lib.aws_ec2.SecurityGroup",
               "version": "2.140.0"
             }
           },
-          "UrlToVideoWorkerService": {
-            "id": "UrlToVideoWorkerService",
-            "path": "WorkerStacks/UrlToVideoWorkerService",
+          "UrlToVideoWorkerLambda": {
+            "id": "UrlToVideoWorkerLambda",
+            "path": "WorkerStacks/UrlToVideoWorkerLambda",
             "children": {
-              "Service": {
-                "id": "Service",
-                "path": "WorkerStacks/UrlToVideoWorkerService/Service",
+              "Resource": {
+                "id": "Resource",
+                "path": "WorkerStacks/UrlToVideoWorkerLambda/Resource",
                 "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::ECS::Service",
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
                   "aws:cdk:cloudformation:props": {
-                    "cluster": {
-                      "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerCluster1157DDD732BF6195"
-                    },
-                    "deploymentConfiguration": {
-                      "maximumPercent": 200,
-                      "minimumHealthyPercent": 50,
-                      "alarms": {
-                        "alarmNames": [],
-                        "enable": false,
-                        "rollback": false
-                      }
-                    },
-                    "desiredCount": 1,
-                    "enableEcsManagedTags": false,
-                    "launchType": "FARGATE",
-                    "networkConfiguration": {
-                      "awsvpcConfiguration": {
-                        "assignPublicIp": "DISABLED",
-                        "subnets": [
-                          {
-                            "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
-                          },
-                          {
-                            "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
-                          }
-                        ],
-                        "securityGroups": [
-                          {
-                            "Fn::GetAtt": [
-                              "UrlToVideoWorkerServiceSecurityGroup6C25CAD8",
-                              "GroupId"
-                            ]
-                          }
+                    "code": {
+                      "imageUri": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            {
+                              "Fn::Select": [
+                                4,
+                                {
+                                  "Fn::Split": [
+                                    ":",
+                                    {
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            ".dkr.ecr.",
+                            {
+                              "Fn::Select": [
+                                3,
+                                {
+                                  "Fn::Split": [
+                                    ":",
+                                    {
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            ".",
+                            {
+                              "Ref": "AWS::URLSuffix"
+                            },
+                            "/",
+                            {
+                              "Fn::ImportValue": "EcrStack:ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
+                            },
+                            ":latest"
+                          ]
                         ]
                       }
                     },
-                    "taskDefinition": {
-                      "Ref": "UrlToVideoWorkerTaskDef2A68AF5E"
+                    "environment": {
+                      "variables": {
+                        "URL_TO_VIDEO_QUEUE_URL": {
+                          "Fn::ImportValue": "QueueStack:ExportsOutputRefUrlToVideoQueue9766BE39B6F3CF36"
+                        },
+                        "VIDEO_BUCKET": {
+                          "Fn::ImportValue": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
+                        },
+                        "VIDEO_TO_TRANSCRIPT_QUEUE_URL": {
+                          "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+                        },
+                        "DB_HOST": {
+                          "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+                        },
+                        "DB_PORT": "5432",
+                        "DB_NAME": "factchecker",
+                        "DB_SECRET_ARN": {
+                          "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+                        },
+                        "OPENAI_SECRET_ARN": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":secretsmanager:",
+                              {
+                                "Ref": "AWS::Region"
+                              },
+                              ":",
+                              {
+                                "Ref": "AWS::AccountId"
+                              },
+                              ":secret:factchecker/openai-api-key"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "functionName": "factchecker-url-to-video",
+                    "memorySize": 1024,
+                    "packageType": "Image",
+                    "role": {
+                      "Fn::GetAtt": [
+                        "UrlToVideoWorkerLambdaRoleD351B0A1",
+                        "Arn"
+                      ]
+                    },
+                    "timeout": 900,
+                    "vpcConfig": {
+                      "subnetIds": [
+                        {
+                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+                        },
+                        {
+                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+                        }
+                      ],
+                      "securityGroupIds": [
+                        {
+                          "Fn::GetAtt": [
+                            "UrlToVideoWorkerLambdaSecurityGroup155F648E",
+                            "GroupId"
+                          ]
+                        }
+                      ]
                     }
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_ecs.CfnService",
+                  "fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
                   "version": "2.140.0"
                 }
               },
-              "SecurityGroup": {
-                "id": "SecurityGroup",
-                "path": "WorkerStacks/UrlToVideoWorkerService/SecurityGroup",
+              "SqsEventSource:QueueStackUrlToVideoQueue61D3081B": {
+                "id": "SqsEventSource:QueueStackUrlToVideoQueue61D3081B",
+                "path": "WorkerStacks/UrlToVideoWorkerLambda/SqsEventSource:QueueStackUrlToVideoQueue61D3081B",
                 "children": {
                   "Resource": {
                     "id": "Resource",
-                    "path": "WorkerStacks/UrlToVideoWorkerService/SecurityGroup/Resource",
+                    "path": "WorkerStacks/UrlToVideoWorkerLambda/SqsEventSource:QueueStackUrlToVideoQueue61D3081B/Resource",
                     "attributes": {
-                      "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
                       "aws:cdk:cloudformation:props": {
-                        "groupDescription": "WorkerStacks/UrlToVideoWorkerService/SecurityGroup",
-                        "securityGroupEgress": [
-                          {
-                            "cidrIp": "0.0.0.0/0",
-                            "description": "Allow all outbound traffic by default",
-                            "ipProtocol": "-1"
-                          }
+                        "batchSize": 10,
+                        "eventSourceArn": {
+                          "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttUrlToVideoQueue9766BE39Arn9D2DB0FD"
+                        },
+                        "functionName": {
+                          "Ref": "UrlToVideoWorkerLambdaB6ED7478"
+                        },
+                        "functionResponseTypes": [
+                          "ReportBatchItemFailures"
                         ],
-                        "vpcId": {
-                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
-                        }
+                        "maximumBatchingWindowInSeconds": 0
                       }
                     },
                     "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_ec2.CfnSecurityGroup",
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnEventSourceMapping",
                       "version": "2.140.0"
                     }
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_ec2.SecurityGroup",
+                  "fqn": "aws-cdk-lib.aws_lambda.EventSourceMapping",
                   "version": "2.140.0"
                 }
               }
             },
             "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_ecs.FargateService",
+              "fqn": "aws-cdk-lib.aws_lambda.DockerImageFunction",
               "version": "2.140.0"
             }
           },
@@ -4430,12 +4344,6 @@
                             "name": "TRANSCRIPT_TO_CLAIMS_QUEUE_URL",
                             "value": {
                               "Fn::ImportValue": "QueueStack:ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
-                            }
-                          },
-                          {
-                            "name": "AWS_REGION",
-                            "value": {
-                              "Ref": "AWS::Region"
                             }
                           },
                           {
@@ -4906,12 +4814,6 @@
                             }
                           },
                           {
-                            "name": "AWS_REGION",
-                            "value": {
-                              "Ref": "AWS::Region"
-                            }
-                          },
-                          {
                             "name": "DB_HOST",
                             "value": {
                               "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
@@ -5364,12 +5266,6 @@
                             "name": "CLAIMS_TO_VERIFIED_QUEUE_URL",
                             "value": {
                               "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-                            }
-                          },
-                          {
-                            "name": "AWS_REGION",
-                            "value": {
-                              "Ref": "AWS::Region"
                             }
                           },
                           {

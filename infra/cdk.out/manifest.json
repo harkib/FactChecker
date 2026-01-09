@@ -246,7 +246,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a3d86667a658954b90d31cf4e426db88d6fca5f489ea2ae904413422dd6f9525.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0e1c6f4e26b5c311f80f3f9b48e1c47c88d0c5a616949c0a8b012d7cc99577f7.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -316,12 +316,6 @@
             "data": "ExportsOutputRefapiRepository1BACA39932AB2103"
           }
         ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
-          }
-        ],
         "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"videototranscriptRepository1F507E67\",\"Arn\"]}": [
           {
             "type": "aws:cdk:logicalId",
@@ -338,6 +332,12 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+          }
+        ],
+        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
           }
         ],
         "/EcrStack/Exports/Output{\"Ref\":\"urltovideoRepositoryCF2C2841\"}": [
@@ -1020,7 +1020,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/44b7c38e8e5b3edb287efa10c863a614cb669046004a5baa3bf1e4a8cec2e944.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0f0ca2fb6c892a10d2b0b4748b2cd1b229eaa64f52e3f4a2bbd6b4226230e69d.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -1033,11 +1033,11 @@
         }
       },
       "dependencies": [
+        "VpcStack",
         "DatabaseStack",
         "EcrStack",
         "QueueStack",
         "StorageStack",
-        "VpcStack",
         "WorkerStacks.assets"
       ],
       "metadata": {
@@ -1053,40 +1053,34 @@
             "data": "WorkerExecutionRoleDefaultPolicy2AE0C78C"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerTaskRole/Resource": [
+        "/WorkerStacks/UrlToVideoWorkerLambdaRole/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerTaskRole303FCA01"
+            "data": "UrlToVideoWorkerLambdaRoleD351B0A1"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerTaskRole/DefaultPolicy/Resource": [
+        "/WorkerStacks/UrlToVideoWorkerLambdaRole/DefaultPolicy/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerTaskRoleDefaultPolicy40F05B6E"
+            "data": "UrlToVideoWorkerLambdaRoleDefaultPolicyE1E56FED"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerTaskDef/Resource": [
+        "/WorkerStacks/UrlToVideoWorkerLambdaSecurityGroup/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerTaskDef2A68AF5E"
+            "data": "UrlToVideoWorkerLambdaSecurityGroup155F648E"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerTaskDef/UrlToVideoWorkerContainer/LogGroup/Resource": [
+        "/WorkerStacks/UrlToVideoWorkerLambda/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerTaskDefUrlToVideoWorkerContainerLogGroup15ED6B37"
+            "data": "UrlToVideoWorkerLambdaB6ED7478"
           }
         ],
-        "/WorkerStacks/UrlToVideoWorkerService/Service": [
+        "/WorkerStacks/UrlToVideoWorkerLambda/SqsEventSource:QueueStackUrlToVideoQueue61D3081B/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerServiceCCFACDBA"
-          }
-        ],
-        "/WorkerStacks/UrlToVideoWorkerService/SecurityGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "UrlToVideoWorkerServiceSecurityGroup6C25CAD8"
+            "data": "UrlToVideoWorkerLambdaSqsEventSourceQueueStackUrlToVideoQueue61D3081B3C594069"
           }
         ],
         "/WorkerStacks/VideoToTranscriptWorkerTaskRole/Resource": [

@@ -26,7 +26,23 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/url-to-video"
+    "RepositoryName": "factchecker/url-to-video",
+    "RepositoryPolicyText": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
    },
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
@@ -326,17 +342,6 @@
     "Name": "EcrStack:ExportsOutputRefapiRepository1BACA39932AB2103"
    }
   },
-  "ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA": {
-   "Value": {
-    "Fn::GetAtt": [
-     "urltovideoRepositoryCF2C2841",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
-   }
-  },
   "ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C": {
    "Value": {
     "Fn::GetAtt": [
@@ -368,6 +373,17 @@
    },
    "Export": {
     "Name": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+   }
+  },
+  "ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA": {
+   "Value": {
+    "Fn::GetAtt": [
+     "urltovideoRepositoryCF2C2841",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA"
    }
   },
   "ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D": {
