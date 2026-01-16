@@ -348,55 +348,6 @@
    "Export": {
     "Name": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
    }
-  },
-  "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E": {
-   "Value": {
-    "Fn::GetAtt": [
-     "VideoToTranscriptQueueEE07C8F2",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
-   }
-  },
-  "ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1": {
-   "Value": {
-    "Ref": "TranscriptToClaimsQueueDB98A91C"
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
-   }
-  },
-  "ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B": {
-   "Value": {
-    "Fn::GetAtt": [
-     "TranscriptToClaimsQueueDB98A91C",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
-   }
-  },
-  "ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58": {
-   "Value": {
-    "Ref": "ClaimsToVerifiedQueue0B67AFAD"
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-   }
-  },
-  "ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86": {
-   "Value": {
-    "Fn::GetAtt": [
-     "ClaimsToVerifiedQueue0B67AFAD",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-   }
   }
  },
  "Parameters": {

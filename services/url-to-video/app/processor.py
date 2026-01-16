@@ -57,8 +57,15 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
     except Exception as e:
         # Cleanup on error
         if os.path.exists(output_path):
-            os.remove(output_path)
+            try:
+                os.remove(output_path)
+            except:
+                pass
         if os.path.exists(temp_dir):
-            os.rmdir(temp_dir)
-        await update_job_status_async(session, job_id, "failed", f"Failed to download video: {str(e)}")
-        raise
+            try:
+                os.rmdir(temp_dir)
+            except:
+                pass
+        # Don't update job status here - let the caller handle it
+        # This avoids double updates and potential event loop conflicts
+        raise e

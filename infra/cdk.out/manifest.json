@@ -246,7 +246,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0e1c6f4e26b5c311f80f3f9b48e1c47c88d0c5a616949c0a8b012d7cc99577f7.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/901aa1de683ab7b5066c5f830a2c9f0980d3c0114d7d180ca5b08b4def9923fc.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -316,24 +316,6 @@
             "data": "ExportsOutputRefapiRepository1BACA39932AB2103"
           }
         ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"videototranscriptRepository1F507E67\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"transcripttoclaimsRepository355DBC9C\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-          }
-        ],
         "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"urltovideoRepositoryCF2C2841\",\"Arn\"]}": [
           {
             "type": "aws:cdk:logicalId",
@@ -344,24 +326,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Ref\":\"videototranscriptRepository1F507E67\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Ref\":\"transcripttoclaimsRepository355DBC9C\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Ref\":\"claimstoverifiedRepository0929902A\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
           }
         ],
         "/EcrStack/BootstrapVersion": [
@@ -625,7 +589,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/8884c0bd95a478ee174eb3e5ececfbfcfc70d5d5cb7b346a8497145a0f9410ed.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0a5a0fe11eaa728a4d4aa764dd6dd868bdde27921d4d0154559e514b09b69acc.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -699,36 +663,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Ref\":\"TranscriptToClaimsQueueDB98A91C\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"TranscriptToClaimsQueueDB98A91C\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Ref\":\"ClaimsToVerifiedQueue0B67AFAD\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"ClaimsToVerifiedQueue0B67AFAD\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
           }
         ],
         "/QueueStack/BootstrapVersion": [
@@ -1020,7 +954,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0f0ca2fb6c892a10d2b0b4748b2cd1b229eaa64f52e3f4a2bbd6b4226230e69d.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/7f5d7d6df8dc9a6b2e3e26d7c0cdc256917b25a4cd5da29e9f4015bdaf9a01aa.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -1035,8 +969,8 @@
       "dependencies": [
         "VpcStack",
         "DatabaseStack",
-        "EcrStack",
         "QueueStack",
+        "EcrStack",
         "StorageStack",
         "WorkerStacks.assets"
       ],
@@ -1081,114 +1015,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "UrlToVideoWorkerLambdaSqsEventSourceQueueStackUrlToVideoQueue61D3081B3C594069"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerTaskRole/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerTaskRoleE075664A"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerTaskRole/DefaultPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerTaskRoleDefaultPolicyB092B929"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerTaskDef/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerTaskDef98C0A907"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerTaskDef/VideoToTranscriptWorkerContainer/LogGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerTaskDefVideoToTranscriptWorkerContainerLogGroupE4CD23C3"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerService/Service": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerService81BF69A1"
-          }
-        ],
-        "/WorkerStacks/VideoToTranscriptWorkerService/SecurityGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoToTranscriptWorkerServiceSecurityGroupD2F0FE86"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerTaskRole/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerTaskRole0764837B"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerTaskRole/DefaultPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerTaskRoleDefaultPolicyD4F1B851"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerTaskDef/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerTaskDef8DA7B314"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerTaskDef/TranscriptToClaimsWorkerContainer/LogGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerTaskDefTranscriptToClaimsWorkerContainerLogGroup323B9688"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerService/Service": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerService8D9BB06B"
-          }
-        ],
-        "/WorkerStacks/TranscriptToClaimsWorkerService/SecurityGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerServiceSecurityGroup132F374E"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerTaskRole/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerTaskRoleB292378E"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerTaskRole/DefaultPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerTaskRoleDefaultPolicy0B6FF981"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerTaskDef/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerTaskDef700C8C6F"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerTaskDef/ClaimsToVerifiedWorkerContainer/LogGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerTaskDefClaimsToVerifiedWorkerContainerLogGroup29C26BBF"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerService/Service": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerServiceC5451B00"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerService/SecurityGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerServiceSecurityGroup1E4E5A21"
           }
         ],
         "/WorkerStacks/CDKMetadata/Default": [

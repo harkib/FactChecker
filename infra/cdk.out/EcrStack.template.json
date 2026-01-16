@@ -342,39 +342,6 @@
     "Name": "EcrStack:ExportsOutputRefapiRepository1BACA39932AB2103"
    }
   },
-  "ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C": {
-   "Value": {
-    "Fn::GetAtt": [
-     "videototranscriptRepository1F507E67",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
-   }
-  },
-  "ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5": {
-   "Value": {
-    "Fn::GetAtt": [
-     "transcripttoclaimsRepository355DBC9C",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
-   }
-  },
-  "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE": {
-   "Value": {
-    "Fn::GetAtt": [
-     "claimstoverifiedRepository0929902A",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-   }
-  },
   "ExportsOutputFnGetAtturltovideoRepositoryCF2C2841Arn790CF0BA": {
    "Value": {
     "Fn::GetAtt": [
@@ -392,30 +359,6 @@
    },
    "Export": {
     "Name": "EcrStack:ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
-   }
-  },
-  "ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D": {
-   "Value": {
-    "Ref": "videototranscriptRepository1F507E67"
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
-   }
-  },
-  "ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5": {
-   "Value": {
-    "Ref": "transcripttoclaimsRepository355DBC9C"
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
-   }
-  },
-  "ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7": {
-   "Value": {
-    "Ref": "claimstoverifiedRepository0929902A"
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
    }
   }
  },

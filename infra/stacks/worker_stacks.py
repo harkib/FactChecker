@@ -94,64 +94,64 @@ class WorkerStacks(Stack):
                 repository=ecr_repositories["url-to-video"],
             )
 
-        # Video to Transcript Worker
-        self._create_worker_service(
-            "VideoToTranscriptWorker",
-            cluster,
-            "video-to-transcript",
-            execution_role,
-            database_secret,
-            openai_secret,
-            {
-                "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
-                "VIDEO_BUCKET": video_bucket_name,
-                "ASSETS_BUCKET": assets_bucket_name,
-                "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
-            },
-            queue_url=video_to_transcript_queue_url,
-            queue_arn=video_to_transcript_queue_arn,
-            cpu=2048,
-            memory=4096,
-            repository=ecr_repositories["video-to-transcript"],
-        )
+        # # Video to Transcript Worker
+        # self._create_worker_service(
+        #     "VideoToTranscriptWorker",
+        #     cluster,
+        #     "video-to-transcript",
+        #     execution_role,
+        #     database_secret,
+        #     openai_secret,
+        #     {
+        #         "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
+        #         "VIDEO_BUCKET": video_bucket_name,
+        #         "ASSETS_BUCKET": assets_bucket_name,
+        #         "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+        #     },
+        #     queue_url=video_to_transcript_queue_url,
+        #     queue_arn=video_to_transcript_queue_arn,
+        #     cpu=2048,
+        #     memory=4096,
+        #     repository=ecr_repositories["video-to-transcript"],
+        # )
 
-        # Transcript to Claims Worker
-        self._create_worker_service(
-            "TranscriptToClaimsWorker",
-            cluster,
-            "transcript-to-claims",
-            execution_role,
-            database_secret,
-            openai_secret,
-            {
-                "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
-                "ASSETS_BUCKET": assets_bucket_name,
-                "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
-            },
-            queue_url=transcript_to_claims_queue_url,
-            queue_arn=transcript_to_claims_queue_arn,
-            cpu=1024,
-            memory=2048,
-            repository=ecr_repositories["transcript-to-claims"],
-        )
+        # # Transcript to Claims Worker
+        # self._create_worker_service(
+        #     "TranscriptToClaimsWorker",
+        #     cluster,
+        #     "transcript-to-claims",
+        #     execution_role,
+        #     database_secret,
+        #     openai_secret,
+        #     {
+        #         "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+        #         "ASSETS_BUCKET": assets_bucket_name,
+        #         "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+        #     },
+        #     queue_url=transcript_to_claims_queue_url,
+        #     queue_arn=transcript_to_claims_queue_arn,
+        #     cpu=1024,
+        #     memory=2048,
+        #     repository=ecr_repositories["transcript-to-claims"],
+        # )
 
-        # Claims to Verified Worker
-        self._create_worker_service(
-            "ClaimsToVerifiedWorker",
-            cluster,
-            "claims-to-verified",
-            execution_role,
-            database_secret,
-            openai_secret,
-            {
-                "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
-            },
-            queue_url=claims_to_verified_queue_url,
-            queue_arn=claims_to_verified_queue_arn,
-            cpu=512,
-            memory=1024,
-            repository=ecr_repositories["claims-to-verified"],
-        )
+        # # Claims to Verified Worker
+        # self._create_worker_service(
+        #     "ClaimsToVerifiedWorker",
+        #     cluster,
+        #     "claims-to-verified",
+        #     execution_role,
+        #     database_secret,
+        #     openai_secret,
+        #     {
+        #         "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+        #     },
+        #     queue_url=claims_to_verified_queue_url,
+        #     queue_arn=claims_to_verified_queue_arn,
+        #     cpu=512,
+        #     memory=1024,
+        #     repository=ecr_repositories["claims-to-verified"],
+        # )
 
     def _create_worker_service(
         self,

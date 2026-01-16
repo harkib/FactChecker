@@ -30,7 +30,11 @@ class Job(Base):
     title = Column(Text, nullable=True)
 
 
-# Module-level database configuration
+# Module-level database configuration (lazy initialization)
+_engine: Optional[AsyncEngine] = None
+_sessionmaker: Optional[async_sessionmaker] = None
+
+
 def env_var_check():
     """Check that all required database environment variables are set."""
     required_vars = ['DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_NAME']
@@ -39,30 +43,55 @@ def env_var_check():
         raise ValueError(f"Missing required database environment variables: {', '.join(missing)}")
 
 
-# Module-level engine and sessionmaker
-env_var_check()
-database_url: str = (
+def _ensure_initialized():
+    """Ensure database is initialized. Called lazily on first use."""
+    global _engine, _sessionmaker
+    if _engine is not None:
+        return
+    
+    # Check env vars
+    env_var_check()
+    
+    # Create database URL
+    database_url: str = (
         f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME')}"
     )
-engine: AsyncEngine = create_async_engine(
-            database_url,
-            pool_size=10,
-            max_overflow=20,
-            pool_pre_ping=True,  # Verify connections before using
-            echo=False,  # Set to True for SQL query logging
-        )
-sessionmaker: async_sessionmaker = async_sessionmaker(
-            engine,
-            class_=AsyncSession,
-            expire_on_commit=False,
-        )
+    
+    # Create engine and sessionmaker
+    _engine = create_async_engine(
+        database_url,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,  # Verify connections before using
+        echo=False,  # Set to True for SQL query logging
+    )
+    _sessionmaker = async_sessionmaker(
+        _engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+
+def get_engine() -> AsyncEngine:
+    """Get database engine, initializing if needed."""
+    _ensure_initialized()
+    return _engine
+
+
+def get_sessionmaker() -> async_sessionmaker:
+    """Get sessionmaker, initializing if needed."""
+    _ensure_initialized()
+    return _sessionmaker
+
+
 
 
 async def init_db():
     """Initialize SQLAlchemy async engine and session factory, create tables if they don't exist."""
+    _ensure_initialized()
     try:
-        async with engine.begin() as conn:
+        async with _engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
         print(f"Warning: Failed to create database tables: {e}")
@@ -70,7 +99,7 @@ async def init_db():
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency for getting async database session."""
-    async with sessionmaker() as session:
+    async with get_sessionmaker()() as session:
         try:
             yield session
         finally:
