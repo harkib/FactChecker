@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from shared.database import create_job_async, get_job_async, update_job_status_async, get_jobs_by_client_id_async
+from shared.database import create_job_async, get_job_async, update_job_status_async, get_jobs_by_client_id_async, JobStatus
 from shared.logger import get_logger, bind_job_id
 
 # Initialize logger with resource name
@@ -31,7 +31,7 @@ async def create_fact_check_job(db: AsyncSession, video_url: str, client_id: str
     queue_url = os.getenv("URL_TO_VIDEO_QUEUE_URL")
     if not queue_url:
         job_logger.error("URL_TO_VIDEO_QUEUE_URL not configured")
-        await update_job_status_async(db, job_id, "failed", "URL_TO_VIDEO_QUEUE_URL not configured")
+        await update_job_status_async(db, job_id, JobStatus.FAILED.value, "URL_TO_VIDEO_QUEUE_URL not configured")
         raise ValueError("URL_TO_VIDEO_QUEUE_URL not configured")
     
     from shared.sqs_client import send_message
@@ -43,7 +43,7 @@ async def create_fact_check_job(db: AsyncSession, video_url: str, client_id: str
     
     if not message_sent:
         job_logger.error("Failed to send message to queue")
-        await update_job_status_async(db, job_id, "failed", "Failed to send message to queue")
+        await update_job_status_async(db, job_id, JobStatus.FAILED.value, "Failed to send message to queue")
         raise RuntimeError("Failed to send message to queue")
     
     job_logger.info("Message sent to url-to-video queue successfully")

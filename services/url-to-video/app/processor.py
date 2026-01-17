@@ -5,7 +5,7 @@ import tempfile
 import sys
 
 from shared.s3_client import upload_file
-from shared.database import update_job_video_s3_key_async, update_job_status_async
+from shared.database import update_job_video_s3_key_async, update_job_status_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -35,6 +35,9 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
     }
     
     try:
+        # Set status to DOWNLOADING before starting download
+        await update_job_status_async(session, job_id, JobStatus.DOWNLOADING.value, None)
+        
         # Download video (synchronous operation - blocks event loop but acceptable)
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
@@ -46,8 +49,10 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
         if not await upload_file(output_path, bucket, s3_key):
             raise RuntimeError("Failed to upload video to S3")
         
-        # Update job with S3 key (async)
+        # Update job with S3 key (async) - sets status to DOWNLOADED
         await update_job_video_s3_key_async(session, job_id, s3_key)
+        
+
         
         # Cleanup
         os.remove(output_path)

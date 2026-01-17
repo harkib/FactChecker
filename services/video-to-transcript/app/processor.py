@@ -7,7 +7,7 @@ import tempfile
 import sys
 
 from shared.s3_client import upload_file, upload_bytes, download_file
-from shared.database import update_job_transcript_s3_key_async, update_job_status_async
+from shared.database import update_job_transcript_s3_key_async, update_job_status_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -32,6 +32,9 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
     os.makedirs(frames_dir, exist_ok=True)
     
     try:
+        # Set status to PROCESSING before starting transcript extraction
+        await update_job_status_async(session, job_id, JobStatus.PROCESSING.value, None)
+        
         # Download video from S3 (async)
         if not await download_file(video_bucket, video_s3_key, video_path):
             raise RuntimeError("Failed to download video from S3")
@@ -84,7 +87,7 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
         
         print(f"Extracted {len(frame_files)} frames")
         
-        # Update job (async)
+        # Update job with transcript and frames (async) - sets status to PROCESSING
         await update_job_transcript_s3_key_async(session, job_id, transcript_s3_key, frames_s3_prefix)
         
         # Cleanup
@@ -98,5 +101,5 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
         import shutil
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        await update_job_status_async(session, job_id, "failed", f"Failed to process video: {str(e)}")
+        await update_job_status_async(session, job_id, JobStatus.FAILED.value, f"Failed to process video: {str(e)}")
         raise

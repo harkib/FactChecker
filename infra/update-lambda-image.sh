@@ -1,39 +1,69 @@
 #!/bin/bash
-# Force update Lambda function with new ECR image
+# Force update all Lambda functions with new ECR images
 # Run from infra directory
 
 set -e
 
-FUNCTION_NAME="factchecker-url-to-video"
 REGION=${AWS_REGION:-"us-east-1"}
+
+# List of all Lambda service names
+SERVICES=(
+    "url-to-video"
+    "video-to-transcript"
+    "transcript-to-claims"
+    "claims-to-verified"
+)
 
 # Get AWS account ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/factchecker/url-to-video"
 
-echo "Updating Lambda function: $FUNCTION_NAME"
-echo "Image: $ECR_REPO:latest"
+echo "Updating all Lambda functions..."
+echo "Region: $REGION"
+echo "AWS Account: $AWS_ACCOUNT_ID"
 echo ""
 
-# Update the Lambda function code
-aws lambda update-function-code \
-    --function-name $FUNCTION_NAME \
-    --image-uri "$ECR_REPO:latest" \
-    --region $REGION
+# Update each Lambda function
+for service_name in "${SERVICES[@]}"; do
+    FUNCTION_NAME="factchecker-$service_name"
+    ECR_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/factchecker/$service_name"
+    
+    echo "=========================================="
+    echo "Updating Lambda function: $FUNCTION_NAME"
+    echo "Image: $ECR_REPO:latest"
+    echo ""
+    
+    # Update the Lambda function code
+    aws lambda update-function-code \
+        --function-name $FUNCTION_NAME \
+        --image-uri "$ECR_REPO:latest" \
+        --region $REGION
+    
+    echo ""
+    echo "Waiting for update to complete..."
+    aws lambda wait function-updated \
+        --function-name $FUNCTION_NAME \
+        --region $REGION
+    
+    echo ""
+    echo "✓ Lambda function $FUNCTION_NAME updated successfully!"
+    echo ""
+done
 
+echo "=========================================="
+echo "All Lambda functions updated!"
 echo ""
-echo "Waiting for update to complete..."
-aws lambda wait function-updated \
-    --function-name $FUNCTION_NAME \
-    --region $REGION
+echo "Checking status of all functions..."
+echo ""
 
-echo ""
-echo "✓ Lambda function updated successfully!"
-echo ""
-echo "Check status:"
-aws lambda get-function-configuration \
-    --function-name $FUNCTION_NAME \
-    --region $REGION \
-    --query '{LastUpdateStatus:LastUpdateStatus,LastUpdateStatusReason:LastUpdateStatusReason}' \
-    --output table
+# Check status of all functions
+for service_name in "${SERVICES[@]}"; do
+    FUNCTION_NAME="factchecker-$service_name"
+    echo "--- $FUNCTION_NAME ---"
+    aws lambda get-function-configuration \
+        --function-name $FUNCTION_NAME \
+        --region $REGION \
+        --query '{LastUpdateStatus:LastUpdateStatus,LastUpdateStatusReason:LastUpdateStatusReason}' \
+        --output table
+    echo ""
+done
 

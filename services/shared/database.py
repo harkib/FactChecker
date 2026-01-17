@@ -1,5 +1,6 @@
 """Database models and utilities for job tracking using SQLAlchemy async."""
 import os
+from enum import Enum
 from typing import Optional, Dict, Any, AsyncGenerator, List
 from sqlalchemy import Column, String, Text, DateTime, select, desc
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -9,6 +10,19 @@ from sqlalchemy.sql import func
 import uuid
 
 Base = declarative_base()
+
+
+class JobStatus(str, Enum):
+    """Job status enumeration."""
+    PENDING = "pending"
+    DOWNLOADING = "downloading"
+    DOWNLOADED = "downloaded"
+    PROCESSING = "processing"  # transcript extraction in progress
+    TRANSCRIBED = "transcribed"
+    EXTRACTING = "extracting"  # claims extraction in progress
+    CLAIMS_EXTRACTED = "claims_extracted"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class Job(Base):
@@ -115,7 +129,7 @@ async def create_job_async(session: AsyncSession, video_url: str, client_id: str
         video_url: URL of the video to process
         client_id: Client ID (IDFV from iOS app) - required
     """
-    job = Job(video_url=video_url, status="pending", client_id=client_id)
+    job = Job(video_url=video_url, status=JobStatus.PENDING.value, client_id=client_id)
     session.add(job)
     await session.commit()
     await session.refresh(job)
@@ -123,13 +137,21 @@ async def create_job_async(session: AsyncSession, video_url: str, client_id: str
 
 
 async def update_job_status_async(session: AsyncSession, job_id: str, status: str, error_message: Optional[str] = None):
-    """Update job status (async, requires session)."""
+    """Update job status (async, requires session).
+    
+    If status is FAILED, stores it as "failed_<previous_status>".
+    """
     try:
         stmt = select(Job).where(Job.id == uuid.UUID(job_id))
         result = await session.execute(stmt)
         job = result.scalar_one_or_none()
         if job:
-            job.status = status
+            # If setting to FAILED, store as "failed_<previous_status>"
+            if status == JobStatus.FAILED.value:
+                previous_status = job.status
+                job.status = f"{JobStatus.FAILED.value}_{previous_status}"
+            else:
+                job.status = status
             if error_message:
                 job.error_message = error_message
             await session.commit()
@@ -146,7 +168,7 @@ async def update_job_video_s3_key_async(session: AsyncSession, job_id: str, s3_k
         job = result.scalar_one_or_none()
         if job:
             job.video_s3_key = s3_key
-            job.status = "downloading"
+            job.status = JobStatus.DOWNLOADED.value
             await session.commit()
     except Exception as e:
         await session.rollback()
@@ -162,7 +184,7 @@ async def update_job_transcript_s3_key_async(session: AsyncSession, job_id: str,
         if job:
             job.transcript_s3_key = transcript_s3_key
             job.frames_s3_prefix = frames_s3_prefix
-            job.status = "processing"
+            job.status = JobStatus.TRANSCRIBED.value
             await session.commit()
     except Exception as e:
         await session.rollback()
@@ -179,7 +201,7 @@ async def update_job_claims_async(session: AsyncSession, job_id: str, claims: li
             job.claims = claims
             if title is not None:
                 job.title = title
-            job.status = "extracting"
+            job.status = JobStatus.CLAIMS_EXTRACTED.value
             await session.commit()
     except Exception as e:
         await session.rollback()
@@ -194,7 +216,7 @@ async def update_job_verified_claims_async(session: AsyncSession, job_id: str, v
         job = result.scalar_one_or_none()
         if job:
             job.verified_claims = verified_claims
-            job.status = "completed"
+            job.status = JobStatus.COMPLETED.value
             await session.commit()
     except Exception as e:
         await session.rollback()

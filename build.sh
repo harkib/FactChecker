@@ -47,7 +47,7 @@ echo ""
 
 for service in "${SERVICES[@]}"; do
     echo "Building $service:$IMAGE_TAG for $PLATFORM..."
-    docker build --platform $PLATFORM -f services/$service/Dockerfile -t $ECR_REPO/$service:$IMAGE_TAG .
+    docker build --platform $PLATFORM --provenance=false -f services/$service/Dockerfile -t $ECR_REPO/$service:$IMAGE_TAG .
     echo "✓ Built $service:$IMAGE_TAG"
     echo ""
 done

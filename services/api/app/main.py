@@ -15,7 +15,7 @@ from typing import Optional, List
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
 from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id
-from shared.database import init_db, get_db
+from shared.database import init_db, get_db, JobStatus
 from shared.logger import get_logger, bind_job_id
 
 # Initialize logger with resource name
@@ -126,8 +126,8 @@ async def create_job(
         )
         job_id = await create_fact_check_job(db, str(request.video_url), client_id=client_id)
         job_logger = bind_job_id(logger, job_id)
-        job_logger.info("Job created successfully", status="pending", client_id=client_id)
-        return CreateJobResponse(job_id=job_id, status="pending")
+        job_logger.info("Job created successfully", status=JobStatus.PENDING.value, client_id=client_id)
+        return CreateJobResponse(job_id=job_id, status=JobStatus.PENDING.value)
     except HTTPException:
         raise
     except Exception as e:
@@ -157,7 +157,7 @@ async def get_job_results(job_id: str, db: AsyncSession = Depends(get_db)):
     if not job:
         job_logger.warning("Job not found")
         raise HTTPException(status_code=404, detail="Job not found")
-    if job["status"] != "completed":
+    if job["status"] != JobStatus.COMPLETED.value:
         job_logger.warning("Job not completed", current_status=job["status"])
         raise HTTPException(status_code=400, detail=f"Job is not completed. Current status: {job['status']}")
     job_logger.info("Job results retrieved successfully")

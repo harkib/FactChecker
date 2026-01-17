@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Lambda Runtime Interface Client
+RUN pip install --no-cache-dir awslambdaric
+
 # Copy requirements and install Python dependencies
 COPY services/video-to-transcript/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
@@ -25,6 +28,7 @@ COPY services/video-to-transcript/app/ ./app/
 # Set PYTHONPATH so shared module can be found
 ENV PYTHONPATH=/app
 
-# Run the worker
-CMD ["python", "app/main.py"]
+# Set Lambda handler
+ENTRYPOINT [ "python", "-m", "awslambdaric" ]
+CMD [ "app.lambda_handler.handler" ]
 

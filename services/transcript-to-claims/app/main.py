@@ -10,7 +10,7 @@ if '/app' not in sys.path:
     sys.path.insert(0, '/app')
 
 from shared.sqs_client import receive_messages, delete_message, send_message
-from shared.database import init_db, sessionmaker, update_job_status_async, update_job_claims_async
+from shared.database import init_db, sessionmaker, update_job_status_async, update_job_claims_async, JobStatus
 from shared.logger import get_logger, bind_job_id
 from app.processor import extract_claims
 
@@ -73,8 +73,11 @@ async def process_message(message_body: dict, session):
         
         job_logger.info("Extracted claims", claims_count=len(claims), title=title)
         
-        # Update job with claims and title (async)
+        # Update job with claims and title (async) - sets status to EXTRACTING
         await update_job_claims_async(session, job_id, claims, title)
+        
+        # Update status to CLAIMS_EXTRACTED after successful completion
+        await update_job_status_async(session, job_id, JobStatus.CLAIMS_EXTRACTED.value, None)
         
         # Send message to next queue (claims-to-verified)
         next_queue_url = os.getenv("CLAIMS_TO_VERIFIED_QUEUE_URL")
@@ -90,7 +93,7 @@ async def process_message(message_body: dict, session):
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))
-        await update_job_status_async(session, job_id, "failed", str(e))
+        await update_job_status_async(session, job_id, JobStatus.FAILED.value, str(e))
         return False
 
 

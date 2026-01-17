@@ -59,7 +59,23 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/video-to-transcript"
+    "RepositoryName": "factchecker/video-to-transcript",
+    "RepositoryPolicyText": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
    },
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
@@ -76,7 +92,23 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/transcript-to-claims"
+    "RepositoryName": "factchecker/transcript-to-claims",
+    "RepositoryPolicyText": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
    },
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
@@ -93,7 +125,23 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/claims-to-verified"
+    "RepositoryName": "factchecker/claims-to-verified",
+    "RepositoryPolicyText": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
    },
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
@@ -359,6 +407,63 @@
    },
    "Export": {
     "Name": "EcrStack:ExportsOutputRefurltovideoRepositoryCF2C28410C6AB84D"
+   }
+  },
+  "ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C": {
+   "Value": {
+    "Fn::GetAtt": [
+     "videototranscriptRepository1F507E67",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputFnGetAttvideototranscriptRepository1F507E67Arn5E2B428C"
+   }
+  },
+  "ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D": {
+   "Value": {
+    "Ref": "videototranscriptRepository1F507E67"
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
+   }
+  },
+  "ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5": {
+   "Value": {
+    "Fn::GetAtt": [
+     "transcripttoclaimsRepository355DBC9C",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+   }
+  },
+  "ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5": {
+   "Value": {
+    "Ref": "transcripttoclaimsRepository355DBC9C"
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
+   }
+  },
+  "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE": {
+   "Value": {
+    "Fn::GetAtt": [
+     "claimstoverifiedRepository0929902A",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
+   }
+  },
+  "ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7": {
+   "Value": {
+    "Ref": "claimstoverifiedRepository0929902A"
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
    }
   }
  },

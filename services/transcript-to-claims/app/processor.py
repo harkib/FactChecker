@@ -9,7 +9,7 @@ from typing import Optional, Tuple, List
 from openai import AsyncOpenAI
 from app.prompts import get_prompt
 from shared.s3_client import download_file, list_objects
-from shared.database import update_job_claims_async, update_job_status_async
+from shared.database import update_job_claims_async, update_job_status_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

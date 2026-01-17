@@ -34,8 +34,11 @@ class WorkerStacks(Stack):
         assets_bucket_name: str = None,
         url_to_video_queue: sqs.IQueue = None,
         url_to_video_queue_url: str = None,
+        video_to_transcript_queue: sqs.IQueue = None,
         video_to_transcript_queue_url: str = None,
+        transcript_to_claims_queue: sqs.IQueue = None,
         transcript_to_claims_queue_url: str = None,
+        claims_to_verified_queue: sqs.IQueue = None,
         claims_to_verified_queue_url: str = None,
         url_to_video_queue_arn: str = None,
         video_to_transcript_queue_arn: str = None,
@@ -67,11 +70,15 @@ class WorkerStacks(Stack):
             ],
         )
 
+        # Grant Secrets Manager permissions to execution role
+        # Note: OpenAI secret uses from_secret_name_v2 which returns partial ARN without suffix
+        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for OpenAI secret
+        openai_secret_arn_pattern = f"{openai_secret.secret_arn}-*"
         execution_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[database_secret.secret_arn, openai_secret.secret_arn],
+                resources=[database_secret.secret_arn, openai_secret_arn_pattern],
             )
         )
 
@@ -94,64 +101,61 @@ class WorkerStacks(Stack):
                 repository=ecr_repositories["url-to-video"],
             )
 
-        # # Video to Transcript Worker
-        # self._create_worker_service(
-        #     "VideoToTranscriptWorker",
-        #     cluster,
-        #     "video-to-transcript",
-        #     execution_role,
-        #     database_secret,
-        #     openai_secret,
-        #     {
-        #         "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
-        #         "VIDEO_BUCKET": video_bucket_name,
-        #         "ASSETS_BUCKET": assets_bucket_name,
-        #         "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
-        #     },
-        #     queue_url=video_to_transcript_queue_url,
-        #     queue_arn=video_to_transcript_queue_arn,
-        #     cpu=2048,
-        #     memory=4096,
-        #     repository=ecr_repositories["video-to-transcript"],
-        # )
+        # Video to Transcript Worker - Lambda function
+        if video_to_transcript_queue:
+            self._create_lambda_worker(
+                "VideoToTranscriptWorker",
+                "video-to-transcript",
+                vpc,
+                database_secret,
+                openai_secret,
+                {
+                    "VIDEO_TO_TRANSCRIPT_QUEUE_URL": video_to_transcript_queue_url,
+                    "VIDEO_BUCKET": video_bucket_name,
+                    "ASSETS_BUCKET": assets_bucket_name,
+                    "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+                },
+                queue=video_to_transcript_queue,
+                queue_arn=video_to_transcript_queue_arn,
+                memory=3008,  # Max memory for Lambda with VPC configuration
+                repository=ecr_repositories["video-to-transcript"],
+            )
 
-        # # Transcript to Claims Worker
-        # self._create_worker_service(
-        #     "TranscriptToClaimsWorker",
-        #     cluster,
-        #     "transcript-to-claims",
-        #     execution_role,
-        #     database_secret,
-        #     openai_secret,
-        #     {
-        #         "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
-        #         "ASSETS_BUCKET": assets_bucket_name,
-        #         "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
-        #     },
-        #     queue_url=transcript_to_claims_queue_url,
-        #     queue_arn=transcript_to_claims_queue_arn,
-        #     cpu=1024,
-        #     memory=2048,
-        #     repository=ecr_repositories["transcript-to-claims"],
-        # )
+        # Transcript to Claims Worker - Lambda function
+        if transcript_to_claims_queue:
+            self._create_lambda_worker(
+                "TranscriptToClaimsWorker",
+                "transcript-to-claims",
+                vpc,
+                database_secret,
+                openai_secret,
+                {
+                    "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+                    "ASSETS_BUCKET": assets_bucket_name,
+                    "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+                },
+                queue=transcript_to_claims_queue,
+                queue_arn=transcript_to_claims_queue_arn,
+                memory=2048,
+                repository=ecr_repositories["transcript-to-claims"],
+            )
 
-        # # Claims to Verified Worker
-        # self._create_worker_service(
-        #     "ClaimsToVerifiedWorker",
-        #     cluster,
-        #     "claims-to-verified",
-        #     execution_role,
-        #     database_secret,
-        #     openai_secret,
-        #     {
-        #         "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
-        #     },
-        #     queue_url=claims_to_verified_queue_url,
-        #     queue_arn=claims_to_verified_queue_arn,
-        #     cpu=512,
-        #     memory=1024,
-        #     repository=ecr_repositories["claims-to-verified"],
-        # )
+        # Claims to Verified Worker - Lambda function
+        if claims_to_verified_queue:
+            self._create_lambda_worker(
+                "ClaimsToVerifiedWorker",
+                "claims-to-verified",
+                vpc,
+                database_secret,
+                openai_secret,
+                {
+                    "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+                },
+                queue=claims_to_verified_queue,
+                queue_arn=claims_to_verified_queue_arn,
+                memory=1024,
+                repository=ecr_repositories["claims-to-verified"],
+            )
 
     def _create_worker_service(
         self,
@@ -220,11 +224,14 @@ class WorkerStacks(Stack):
         )
 
         # Grant Secrets Manager permissions
+        # Note: OpenAI secret uses from_secret_name_v2 which returns partial ARN without suffix
+        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for OpenAI secret
+        openai_secret_arn_pattern = f"{openai_secret.secret_arn}-*"
         task_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[database_secret.secret_arn, openai_secret.secret_arn],
+                resources=[database_secret.secret_arn, openai_secret_arn_pattern],
             )
         )
 
@@ -369,11 +376,14 @@ class WorkerStacks(Stack):
         )
 
         # Grant Secrets Manager permissions
+        # Note: OpenAI secret uses from_secret_name_v2 which returns partial ARN without suffix
+        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for OpenAI secret
+        openai_secret_arn_pattern = f"{openai_secret.secret_arn}-*"
         lambda_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[database_secret.secret_arn, openai_secret.secret_arn],
+                resources=[database_secret.secret_arn, openai_secret_arn_pattern],
             )
         )
 

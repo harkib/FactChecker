@@ -1,4 +1,4 @@
-"""Lambda handler for URL to Video transformation (async)."""
+"""Lambda handler for Transcript to Claims transformation (async)."""
 import os
 import json
 import sys
@@ -14,38 +14,72 @@ from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
 from shared.sqs_client import send_message
 from shared.database import get_sessionmaker, update_job_status_async, JobStatus
-from app.processor import download_video
+from app.processor import extract_claims
 
 # Initialize logger with resource name
-logger = get_logger("url-to-video lambda")
+logger = get_logger("transcript-to-claims lambda")
+
+
+def get_openai_api_key():
+    """Get OpenAI API key from environment variable (injected by Lambda from Secrets Manager)."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable not set")
+    return api_key
 
 
 async def process_message(message_body: dict, session, next_queue_url: str) -> bool:
     """Process a single message (async)."""
     job_id = message_body.get("job_id")
-    video_url = message_body.get("video_url")
+    transcript_s3_key = message_body.get("transcript_s3_key")
+    frames_s3_prefix = message_body.get("frames_s3_prefix")
     
     # Bind job_id to logger context
     job_logger = bind_job_id(logger, job_id) if job_id else logger
     
-    if not job_id or not video_url:
-        job_logger.warning("Invalid message: missing job_id or video_url")
+    if not job_id or not transcript_s3_key or not frames_s3_prefix:
+        job_logger.warning("Invalid message: missing required fields")
         return False
     
     try:
-        job_logger.info("Processing job: downloading video", video_url=video_url)
-        s3_key = await download_video(video_url, job_id, session)
-        job_logger.info("Successfully downloaded and uploaded video", s3_key=s3_key)
+        job_logger.info(
+            "Processing job: extracting claims from transcript and frames",
+            transcript_s3_key=transcript_s3_key,
+            frames_s3_prefix=frames_s3_prefix
+        )
         
-        # Send message to next queue (video-to-transcript)
+        assets_bucket = os.getenv("ASSETS_BUCKET")
+        if not assets_bucket:
+            raise ValueError("ASSETS_BUCKET must be set")
+        
+        openai_api_key = get_openai_api_key()
+        if not openai_api_key:
+            raise ValueError("OpenAI API key not found")
+        
+        # Set status to EXTRACTING before starting claims extraction
+        await update_job_status_async(session, job_id, JobStatus.EXTRACTING.value, None)
+        
+        claims, title = await extract_claims(
+            job_id, transcript_s3_key, frames_s3_prefix, assets_bucket, openai_api_key, session
+        )
+        
+        job_logger.info("Extracted claims", claims_count=len(claims), title=title)
+        
+        # Update job with claims and title (async) - sets status to CLAIMS_EXTRACTED
+        from shared.database import update_job_claims_async
+        await update_job_claims_async(session, job_id, claims, title)
+        
+
+        
+        # Send message to next queue (claims-to-verified)
         if next_queue_url:
             await send_message(next_queue_url, {
                 "job_id": job_id,
-                "video_s3_key": s3_key,
+                "claims": claims,
             })
-            job_logger.info("Sent message to video-to-transcript queue")
+            job_logger.info("Sent message to claims-to-verified queue")
         else:
-            job_logger.warning("VIDEO_TO_TRANSCRIPT_QUEUE_URL not configured")
+            job_logger.warning("CLAIMS_TO_VERIFIED_QUEUE_URL not configured")
         
         return True
     except Exception as e:
@@ -69,7 +103,7 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     await initialize_secrets()
     
     batch_item_failures: List[Dict[str, str]] = []
-    next_queue_url = os.getenv("VIDEO_TO_TRANSCRIPT_QUEUE_URL")
+    next_queue_url = os.getenv("CLAIMS_TO_VERIFIED_QUEUE_URL")
     
     # Process each record in the batch
     for record in event.get("Records", []):
@@ -120,5 +154,3 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.info("Created new event loop")
         
     return loop.run_until_complete(async_handler(event, context))
-
-

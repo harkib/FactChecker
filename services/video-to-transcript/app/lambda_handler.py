@@ -1,4 +1,4 @@
-"""Lambda handler for URL to Video transformation (async)."""
+"""Lambda handler for Video to Transcript transformation (async)."""
 import os
 import json
 import sys
@@ -14,38 +14,53 @@ from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
 from shared.sqs_client import send_message
 from shared.database import get_sessionmaker, update_job_status_async, JobStatus
-from app.processor import download_video
+from app.processor import process_video
 
 # Initialize logger with resource name
-logger = get_logger("url-to-video lambda")
+logger = get_logger("video-to-transcript lambda")
 
 
 async def process_message(message_body: dict, session, next_queue_url: str) -> bool:
     """Process a single message (async)."""
     job_id = message_body.get("job_id")
-    video_url = message_body.get("video_url")
+    video_s3_key = message_body.get("video_s3_key")
     
     # Bind job_id to logger context
     job_logger = bind_job_id(logger, job_id) if job_id else logger
     
-    if not job_id or not video_url:
-        job_logger.warning("Invalid message: missing job_id or video_url")
+    if not job_id or not video_s3_key:
+        job_logger.warning("Invalid message: missing job_id or video_s3_key")
         return False
     
     try:
-        job_logger.info("Processing job: downloading video", video_url=video_url)
-        s3_key = await download_video(video_url, job_id, session)
-        job_logger.info("Successfully downloaded and uploaded video", s3_key=s3_key)
+        job_logger.info("Processing job: extracting transcript and frames", video_s3_key=video_s3_key)
         
-        # Send message to next queue (video-to-transcript)
+        video_bucket = os.getenv("VIDEO_BUCKET")
+        assets_bucket = os.getenv("ASSETS_BUCKET")
+        
+        if not video_bucket or not assets_bucket:
+            raise ValueError("VIDEO_BUCKET and ASSETS_BUCKET must be set")
+        
+        transcript_s3_key, frames_s3_prefix = await process_video(
+            video_s3_key, job_id, video_bucket, assets_bucket, session
+        )
+        
+        job_logger.info(
+            "Successfully processed video",
+            transcript_s3_key=transcript_s3_key,
+            frames_s3_prefix=frames_s3_prefix
+        )
+        
+        # Send message to next queue (transcript-to-claims)
         if next_queue_url:
             await send_message(next_queue_url, {
                 "job_id": job_id,
-                "video_s3_key": s3_key,
+                "transcript_s3_key": transcript_s3_key,
+                "frames_s3_prefix": frames_s3_prefix,
             })
-            job_logger.info("Sent message to video-to-transcript queue")
+            job_logger.info("Sent message to transcript-to-claims queue")
         else:
-            job_logger.warning("VIDEO_TO_TRANSCRIPT_QUEUE_URL not configured")
+            job_logger.warning("TRANSCRIPT_TO_CLAIMS_QUEUE_URL not configured")
         
         return True
     except Exception as e:
@@ -69,7 +84,7 @@ async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     await initialize_secrets()
     
     batch_item_failures: List[Dict[str, str]] = []
-    next_queue_url = os.getenv("VIDEO_TO_TRANSCRIPT_QUEUE_URL")
+    next_queue_url = os.getenv("TRANSCRIPT_TO_CLAIMS_QUEUE_URL")
     
     # Process each record in the batch
     for record in event.get("Records", []):
@@ -120,5 +135,3 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.info("Created new event loop")
         
     return loop.run_until_complete(async_handler(event, context))
-
-

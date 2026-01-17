@@ -26,7 +26,7 @@ class QueueStack(Stack):
             self,
             "UrlToVideoQueue",
             queue_name="factchecker-url-to-video",
-            visibility_timeout=Duration.minutes(15),
+            visibility_timeout=Duration.minutes(16),
             retention_period=Duration.days(14),
             dead_letter_queue=sqs.DeadLetterQueue(
                 max_receive_count=3,
@@ -39,7 +39,7 @@ class QueueStack(Stack):
             self,
             "VideoToTranscriptQueue",
             queue_name="factchecker-video-to-transcript",
-            visibility_timeout=Duration.minutes(30),
+            visibility_timeout=Duration.minutes(16),
             retention_period=Duration.days(14),
             dead_letter_queue=sqs.DeadLetterQueue(
                 max_receive_count=3,
@@ -52,7 +52,7 @@ class QueueStack(Stack):
             self,
             "TranscriptToClaimsQueue",
             queue_name="factchecker-transcript-to-claims",
-            visibility_timeout=Duration.minutes(10),
+            visibility_timeout=Duration.minutes(16),  # Must be >= Lambda timeout (15 min)
             retention_period=Duration.days(14),
             dead_letter_queue=sqs.DeadLetterQueue(
                 max_receive_count=3,
@@ -65,7 +65,7 @@ class QueueStack(Stack):
             self,
             "ClaimsToVerifiedQueue",
             queue_name="factchecker-claims-to-verified",
-            visibility_timeout=Duration.minutes(10),
+            visibility_timeout=Duration.minutes(16),  # Must be >= Lambda timeout (15 min)
             retention_period=Duration.days(14),
             dead_letter_queue=sqs.DeadLetterQueue(
                 max_receive_count=3,

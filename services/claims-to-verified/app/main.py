@@ -10,7 +10,7 @@ if '/app' not in sys.path:
     sys.path.insert(0, '/app')
 
 from shared.sqs_client import receive_messages, delete_message
-from shared.database import init_db, sessionmaker, update_job_status_async, update_job_verified_claims_async
+from shared.database import init_db, sessionmaker, update_job_status_async, update_job_verified_claims_async, JobStatus
 from shared.logger import get_logger, bind_job_id
 from app.processor import verify_claims
 
@@ -81,7 +81,7 @@ async def process_message(message_body: dict, session):
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))
-        await update_job_status_async(session, job_id, "failed", str(e))
+        await update_job_status_async(session, job_id, JobStatus.FAILED.value, str(e))
         return False
 
 

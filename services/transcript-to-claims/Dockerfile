@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Lambda Runtime Interface Client
+RUN pip install --no-cache-dir awslambdaric
+
 # Copy requirements and install Python dependencies
 COPY services/transcript-to-claims/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,6 +25,7 @@ COPY services/transcript-to-claims/app/ ./app/
 # Set PYTHONPATH so shared module can be found
 ENV PYTHONPATH=/app
 
-# Run the worker
-CMD ["python", "app/main.py"]
+# Set Lambda handler
+ENTRYPOINT [ "python", "-m", "awslambdaric" ]
+CMD [ "app.lambda_handler.handler" ]
 
