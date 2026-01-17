@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Install system dependencies (build tools for asyncpg compilation)
 RUN apt-get update && apt-get install -y \
+    ffmpeg \
     gcc \
     python3-dev \
     libpq-dev \

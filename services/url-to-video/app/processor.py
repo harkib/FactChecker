@@ -8,7 +8,25 @@ from shared.s3_client import upload_file
 from shared.database import update_job_video_s3_key_async, update_job_status_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
+MAX_DURATION_SEC = 3 * 60      # hard reject
+INGEST_WINDOW_SEC = 2 * 60     # only download first N seconds
+MAX_FILESIZE_MB = 20           # 20 MB
 
+def duration_filter(info):
+    """
+    yt-dlp match_filter callback
+    Return None to allow download, or a string to reject.
+    """
+    duration = info.get("duration")
+
+    if duration is None:
+        return "Rejected: unknown duration"
+
+    if duration > MAX_DURATION_SEC:
+        return f"Rejected: duration {duration}s exceeds {MAX_DURATION_SEC}s"
+
+    return None
+    
 async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
     """
     Downloads a video from URL and uploads to S3 (async).
@@ -32,6 +50,10 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
         'merge_output_format': 'mp4',
         'noplaylist': True,
         'quiet': True,
+        "match_filter": duration_filter,
+        "download_sections": f"*0-{INGEST_WINDOW_SEC}",
+        "max_filesize": MAX_FILESIZE_MB * 1024 * 1024,
+        "concurrent_fragments": 1, # looks less like scraping
     }
     
     try:

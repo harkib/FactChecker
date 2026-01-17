@@ -1,6 +1,6 @@
 """Video processing to extract transcript and frames (async)."""
 import ffmpeg
-# import whisper
+import whisper
 import os
 import glob
 import tempfile
@@ -9,7 +9,9 @@ import sys
 from shared.s3_client import upload_file, upload_bytes, download_file
 from shared.database import update_job_transcript_s3_key_async, update_job_status_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
+from shared.logger import get_logger
 
+logger = get_logger("video-to-transcript processor")
 
 async def process_video(video_s3_key: str, job_id: str, video_bucket: str, assets_bucket: str, session: AsyncSession):
     """
@@ -30,6 +32,9 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
     audio_path = os.path.join(temp_dir, "audio.wav")
     frames_dir = os.path.join(temp_dir, "frames")
     os.makedirs(frames_dir, exist_ok=True)
+
+    whisper_cache_dir = "/tmp/whisper"
+    os.makedirs(whisper_cache_dir, exist_ok=True)
     
     try:
         # Set status to PROCESSING before starting transcript extraction
@@ -40,7 +45,7 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
             raise RuntimeError("Failed to download video from S3")
         
         # Extract audio (synchronous operation - blocks event loop but acceptable)
-        print(f"Extracting audio from video...")
+        logger.info("Extracting audio from video...")
         (
             ffmpeg
             .input(video_path)
@@ -50,11 +55,10 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
         )
         
         # Transcribe audio
-        print(f"Transcribing audio...")
-        # model = whisper.load_model("base")
-        # result = model.transcribe(audio_path)
-        # transcript_text = result["text"]
-        transcript_text = "test transcript - whisper disabled"
+        logger.info("Transcribing audio...")
+        model = whisper.load_model("tiny", download_root=whisper_cache_dir)
+        result = model.transcribe(audio_path)
+        transcript_text = result["text"]
 
         # Upload transcript to S3 (async)
         transcript_s3_key = f"transcripts/{job_id}.txt"
@@ -62,7 +66,7 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
             raise RuntimeError("Failed to upload transcript to S3")
         
         # Extract frames (1 frame per 3 seconds) (synchronous operation)
-        print(f"Extracting frames...")
+        logger.info("Extracting frames...")
         temp_frame_pattern = os.path.join(frames_dir, 'frame_%06d.jpg')
         (
             ffmpeg
@@ -85,7 +89,7 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
             if not await upload_file(frame_file, assets_bucket, frame_s3_key):
                 raise RuntimeError(f"Failed to upload frame {frame_s3_key} to S3")
         
-        print(f"Extracted {len(frame_files)} frames")
+        logger.info(f"Extracted {len(frame_files)} frames")
         
         # Update job with transcript and frames (async) - sets status to PROCESSING
         await update_job_transcript_s3_key_async(session, job_id, transcript_s3_key, frames_s3_prefix)

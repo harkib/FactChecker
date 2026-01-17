@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y \
 # Install Lambda Runtime Interface Client
 RUN pip install --no-cache-dir awslambdaric
 
+# Install CPU-only PyTorch (required by whisper, avoid GPU version being installed as dependency)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 # Copy requirements and install Python dependencies
 COPY services/video-to-transcript/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
