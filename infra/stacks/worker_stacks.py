@@ -122,39 +122,59 @@ class WorkerStacks(Stack):
             )
 
         # Transcript to Claims Worker - Lambda function
+        # DISABLED: Combined into transcript-to-verified lambda
+        # if transcript_to_claims_queue:
+        #     self._create_lambda_worker(
+        #         "TranscriptToClaimsWorker",
+        #         "transcript-to-claims",
+        #         vpc,
+        #         database_secret,
+        #         openai_secret,
+        #         {
+        #             "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
+        #             "ASSETS_BUCKET": assets_bucket_name,
+        #             "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+        #         },
+        #         queue=transcript_to_claims_queue,
+        #         queue_arn=transcript_to_claims_queue_arn,
+        #         memory=2048,
+        #         repository=ecr_repositories["transcript-to-claims"],
+        #     )
+
+        # Claims to Verified Worker - Lambda function
+        # DISABLED: Combined into transcript-to-verified lambda
+        # if claims_to_verified_queue:
+        #     self._create_lambda_worker(
+        #         "ClaimsToVerifiedWorker",
+        #         "claims-to-verified",
+        #         vpc,
+        #         database_secret,
+        #         openai_secret,
+        #         {
+        #             "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
+        #         },
+        #         queue=claims_to_verified_queue,
+        #         queue_arn=claims_to_verified_queue_arn,
+        #         memory=1024,
+        #         repository=ecr_repositories["claims-to-verified"],
+        #     )
+
+        # Transcript to Verified Worker - Lambda function (combined extraction + verification)
         if transcript_to_claims_queue:
             self._create_lambda_worker(
-                "TranscriptToClaimsWorker",
-                "transcript-to-claims",
+                "TranscriptToVerifiedWorker",
+                "transcript-to-verified",
                 vpc,
                 database_secret,
                 openai_secret,
                 {
                     "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
                     "ASSETS_BUCKET": assets_bucket_name,
-                    "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
                 },
                 queue=transcript_to_claims_queue,
                 queue_arn=transcript_to_claims_queue_arn,
                 memory=2048,
-                repository=ecr_repositories["transcript-to-claims"],
-            )
-
-        # Claims to Verified Worker - Lambda function
-        if claims_to_verified_queue:
-            self._create_lambda_worker(
-                "ClaimsToVerifiedWorker",
-                "claims-to-verified",
-                vpc,
-                database_secret,
-                openai_secret,
-                {
-                    "CLAIMS_TO_VERIFIED_QUEUE_URL": claims_to_verified_queue_url,
-                },
-                queue=claims_to_verified_queue,
-                queue_arn=claims_to_verified_queue_arn,
-                memory=1024,
-                repository=ecr_repositories["claims-to-verified"],
+                repository=ecr_repositories["transcript-to-verified"],
             )
 
     def _create_worker_service(

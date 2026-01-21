@@ -687,7 +687,7 @@
     "aws:cdk:path": "WorkerStacks/VideoToTranscriptWorkerLambda/SqsEventSource:QueueStackVideoToTranscriptQueue03C3A872/Resource"
    }
   },
-  "TranscriptToClaimsWorkerLambdaRole61731FE4": {
+  "TranscriptToVerifiedWorkerLambdaRoleB037363C": {
    "Type": "AWS::IAM::Role",
    "Properties": {
     "AssumeRolePolicyDocument": {
@@ -730,10 +730,10 @@
     ]
    },
    "Metadata": {
-    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/Resource"
+    "aws:cdk:path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/Resource"
    }
   },
-  "TranscriptToClaimsWorkerLambdaRoleDefaultPolicy21846F27": {
+  "TranscriptToVerifiedWorkerLambdaRoleDefaultPolicy538F43B4": {
    "Type": "AWS::IAM::Policy",
    "Properties": {
     "PolicyDocument": {
@@ -813,21 +813,21 @@
      ],
      "Version": "2012-10-17"
     },
-    "PolicyName": "TranscriptToClaimsWorkerLambdaRoleDefaultPolicy21846F27",
+    "PolicyName": "TranscriptToVerifiedWorkerLambdaRoleDefaultPolicy538F43B4",
     "Roles": [
      {
-      "Ref": "TranscriptToClaimsWorkerLambdaRole61731FE4"
+      "Ref": "TranscriptToVerifiedWorkerLambdaRoleB037363C"
      }
     ]
    },
    "Metadata": {
-    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/DefaultPolicy/Resource"
+    "aws:cdk:path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/DefaultPolicy/Resource"
    }
   },
-  "TranscriptToClaimsWorkerLambdaSecurityGroupB213C290": {
+  "TranscriptToVerifiedWorkerLambdaSecurityGroupE31D8E5D": {
    "Type": "AWS::EC2::SecurityGroup",
    "Properties": {
-    "GroupDescription": "Security group for TranscriptToClaimsWorker Lambda",
+    "GroupDescription": "Security group for TranscriptToVerifiedWorker Lambda",
     "SecurityGroupEgress": [
      {
       "CidrIp": "0.0.0.0/0",
@@ -840,10 +840,10 @@
     }
    },
    "Metadata": {
-    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerLambdaSecurityGroup/Resource"
+    "aws:cdk:path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaSecurityGroup/Resource"
    }
   },
-  "TranscriptToClaimsWorkerLambdaBE060AAD": {
+  "TranscriptToVerifiedWorkerLambdaFEBC5F50": {
    "Type": "AWS::Lambda::Function",
    "Properties": {
     "Code": {
@@ -858,7 +858,7 @@
            "Fn::Split": [
             ":",
             {
-             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
             }
            ]
           }
@@ -872,7 +872,7 @@
            "Fn::Split": [
             ":",
             {
-             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
             }
            ]
           }
@@ -884,7 +884,7 @@
         },
         "/",
         {
-         "Fn::ImportValue": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
+         "Fn::ImportValue": "EcrStack:ExportsOutputReftranscripttoverifiedRepository3F93B13CF5804017"
         },
         ":latest"
        ]
@@ -899,9 +899,6 @@
       "ASSETS_BUCKET": {
        "Fn::ImportValue": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
       },
-      "CLAIMS_TO_VERIFIED_QUEUE_URL": {
-       "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-      },
       "DB_HOST": {
        "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
       },
@@ -932,12 +929,12 @@
       }
      }
     },
-    "FunctionName": "factchecker-transcript-to-claims",
+    "FunctionName": "factchecker-transcript-to-verified",
     "MemorySize": 2048,
     "PackageType": "Image",
     "Role": {
      "Fn::GetAtt": [
-      "TranscriptToClaimsWorkerLambdaRole61731FE4",
+      "TranscriptToVerifiedWorkerLambdaRoleB037363C",
       "Arn"
      ]
     },
@@ -946,7 +943,7 @@
      "SecurityGroupIds": [
       {
        "Fn::GetAtt": [
-        "TranscriptToClaimsWorkerLambdaSecurityGroupB213C290",
+        "TranscriptToVerifiedWorkerLambdaSecurityGroupE31D8E5D",
         "GroupId"
        ]
       }
@@ -962,14 +959,14 @@
     }
    },
    "DependsOn": [
-    "TranscriptToClaimsWorkerLambdaRoleDefaultPolicy21846F27",
-    "TranscriptToClaimsWorkerLambdaRole61731FE4"
+    "TranscriptToVerifiedWorkerLambdaRoleDefaultPolicy538F43B4",
+    "TranscriptToVerifiedWorkerLambdaRoleB037363C"
    ],
    "Metadata": {
-    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerLambda/Resource"
+    "aws:cdk:path": "WorkerStacks/TranscriptToVerifiedWorkerLambda/Resource"
    }
   },
-  "TranscriptToClaimsWorkerLambdaSqsEventSourceQueueStackTranscriptToClaimsQueue4BB7BA3408FB0F92": {
+  "TranscriptToVerifiedWorkerLambdaSqsEventSourceQueueStackTranscriptToClaimsQueue4BB7BA3425FD05F1": {
    "Type": "AWS::Lambda::EventSourceMapping",
    "Properties": {
     "BatchSize": 10,
@@ -977,7 +974,7 @@
      "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
     },
     "FunctionName": {
-     "Ref": "TranscriptToClaimsWorkerLambdaBE060AAD"
+     "Ref": "TranscriptToVerifiedWorkerLambdaFEBC5F50"
     },
     "FunctionResponseTypes": [
      "ReportBatchItemFailures"
@@ -985,302 +982,7 @@
     "MaximumBatchingWindowInSeconds": 0
    },
    "Metadata": {
-    "aws:cdk:path": "WorkerStacks/TranscriptToClaimsWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource"
-   }
-  },
-  "ClaimsToVerifiedWorkerLambdaRole1358B1C9": {
-   "Type": "AWS::IAM::Role",
-   "Properties": {
-    "AssumeRolePolicyDocument": {
-     "Statement": [
-      {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
-       "Principal": {
-        "Service": "lambda.amazonaws.com"
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "ManagedPolicyArns": [
-     {
-      "Fn::Join": [
-       "",
-       [
-        "arn:",
-        {
-         "Ref": "AWS::Partition"
-        },
-        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-       ]
-      ]
-     },
-     {
-      "Fn::Join": [
-       "",
-       [
-        "arn:",
-        {
-         "Ref": "AWS::Partition"
-        },
-        ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-       ]
-      ]
-     }
-    ]
-   },
-   "Metadata": {
-    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/Resource"
-   }
-  },
-  "ClaimsToVerifiedWorkerLambdaRoleDefaultPolicyC72DA2BD": {
-   "Type": "AWS::IAM::Policy",
-   "Properties": {
-    "PolicyDocument": {
-     "Statement": [
-      {
-       "Action": [
-        "sqs:ChangeMessageVisibility",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl",
-        "sqs:ReceiveMessage"
-       ],
-       "Effect": "Allow",
-       "Resource": {
-        "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-       }
-      },
-      {
-       "Action": [
-        "s3:GetObject",
-        "s3:ListBucket",
-        "s3:PutObject",
-        "sqs:SendMessage"
-       ],
-       "Effect": "Allow",
-       "Resource": "*"
-      },
-      {
-       "Action": "rds-db:connect",
-       "Effect": "Allow",
-       "Resource": {
-        "Fn::Join": [
-         "",
-         [
-          "arn:aws:rds-db:",
-          {
-           "Ref": "AWS::Region"
-          },
-          ":",
-          {
-           "Ref": "AWS::AccountId"
-          },
-          ":dbuser:*/postgres"
-         ]
-        ]
-       }
-      },
-      {
-       "Action": "secretsmanager:GetSecretValue",
-       "Effect": "Allow",
-       "Resource": [
-        {
-         "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-        },
-        {
-         "Fn::Join": [
-          "",
-          [
-           "arn:",
-           {
-            "Ref": "AWS::Partition"
-           },
-           ":secretsmanager:",
-           {
-            "Ref": "AWS::Region"
-           },
-           ":",
-           {
-            "Ref": "AWS::AccountId"
-           },
-           ":secret:factchecker/openai-api-key-*"
-          ]
-         ]
-        }
-       ]
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "PolicyName": "ClaimsToVerifiedWorkerLambdaRoleDefaultPolicyC72DA2BD",
-    "Roles": [
-     {
-      "Ref": "ClaimsToVerifiedWorkerLambdaRole1358B1C9"
-     }
-    ]
-   },
-   "Metadata": {
-    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/DefaultPolicy/Resource"
-   }
-  },
-  "ClaimsToVerifiedWorkerLambdaSecurityGroupFF0B602C": {
-   "Type": "AWS::EC2::SecurityGroup",
-   "Properties": {
-    "GroupDescription": "Security group for ClaimsToVerifiedWorker Lambda",
-    "SecurityGroupEgress": [
-     {
-      "CidrIp": "0.0.0.0/0",
-      "Description": "Allow all outbound traffic by default",
-      "IpProtocol": "-1"
-     }
-    ],
-    "VpcId": {
-     "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
-    }
-   },
-   "Metadata": {
-    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaSecurityGroup/Resource"
-   }
-  },
-  "ClaimsToVerifiedWorkerLambdaC32507AB": {
-   "Type": "AWS::Lambda::Function",
-   "Properties": {
-    "Code": {
-     "ImageUri": {
-      "Fn::Join": [
-       "",
-       [
-        {
-         "Fn::Select": [
-          4,
-          {
-           "Fn::Split": [
-            ":",
-            {
-             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-            }
-           ]
-          }
-         ]
-        },
-        ".dkr.ecr.",
-        {
-         "Fn::Select": [
-          3,
-          {
-           "Fn::Split": [
-            ":",
-            {
-             "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-            }
-           ]
-          }
-         ]
-        },
-        ".",
-        {
-         "Ref": "AWS::URLSuffix"
-        },
-        "/",
-        {
-         "Fn::ImportValue": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
-        },
-        ":latest"
-       ]
-      ]
-     }
-    },
-    "Environment": {
-     "Variables": {
-      "CLAIMS_TO_VERIFIED_QUEUE_URL": {
-       "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-      },
-      "DB_HOST": {
-       "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
-      },
-      "DB_PORT": "5432",
-      "DB_NAME": "factchecker",
-      "DB_SECRET_ARN": {
-       "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-      },
-      "OPENAI_SECRET_ARN": {
-       "Fn::Join": [
-        "",
-        [
-         "arn:",
-         {
-          "Ref": "AWS::Partition"
-         },
-         ":secretsmanager:",
-         {
-          "Ref": "AWS::Region"
-         },
-         ":",
-         {
-          "Ref": "AWS::AccountId"
-         },
-         ":secret:factchecker/openai-api-key"
-        ]
-       ]
-      }
-     }
-    },
-    "FunctionName": "factchecker-claims-to-verified",
-    "MemorySize": 1024,
-    "PackageType": "Image",
-    "Role": {
-     "Fn::GetAtt": [
-      "ClaimsToVerifiedWorkerLambdaRole1358B1C9",
-      "Arn"
-     ]
-    },
-    "Timeout": 900,
-    "VpcConfig": {
-     "SecurityGroupIds": [
-      {
-       "Fn::GetAtt": [
-        "ClaimsToVerifiedWorkerLambdaSecurityGroupFF0B602C",
-        "GroupId"
-       ]
-      }
-     ],
-     "SubnetIds": [
-      {
-       "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
-      },
-      {
-       "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
-      }
-     ]
-    }
-   },
-   "DependsOn": [
-    "ClaimsToVerifiedWorkerLambdaRoleDefaultPolicyC72DA2BD",
-    "ClaimsToVerifiedWorkerLambdaRole1358B1C9"
-   ],
-   "Metadata": {
-    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerLambda/Resource"
-   }
-  },
-  "ClaimsToVerifiedWorkerLambdaSqsEventSourceQueueStackClaimsToVerifiedQueueBE4E1F7EA7BC75D4": {
-   "Type": "AWS::Lambda::EventSourceMapping",
-   "Properties": {
-    "BatchSize": 10,
-    "EventSourceArn": {
-     "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-    },
-    "FunctionName": {
-     "Ref": "ClaimsToVerifiedWorkerLambdaC32507AB"
-    },
-    "FunctionResponseTypes": [
-     "ReportBatchItemFailures"
-    ],
-    "MaximumBatchingWindowInSeconds": 0
-   },
-   "Metadata": {
-    "aws:cdk:path": "WorkerStacks/ClaimsToVerifiedWorkerLambda/SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E/Resource"
+    "aws:cdk:path": "WorkerStacks/TranscriptToVerifiedWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource"
    }
   },
   "CDKMetadata": {

@@ -212,6 +212,7 @@ local/downloads/
 
 # secret
 .secret
+.env
 
 # Xcode
 *.xcuserstate
@@ -219,3 +220,6 @@ local/downloads/
 xcuserdata/
 *.xcscheme
 !*.xcscheme
+
+# Mac OS
+.DS_Store

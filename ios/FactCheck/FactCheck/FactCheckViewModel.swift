@@ -14,6 +14,7 @@ class FactCheckViewModel: ObservableObject {
     @Published var videoURL: String = ""
     @Published var jobs: [JobResponse] = []
     @Published var expandedJobIds: Set<String> = []
+    @Published var expandedVerificationIds: Set<String> = []
     @Published var isLoading: Bool = false
     @Published var isRefreshing: Bool = false
     @Published var errorMessage: String?
@@ -133,6 +134,20 @@ class FactCheckViewModel: ObservableObject {
         return expandedJobIds.contains(jobId)
     }
     
+    // MARK: - Verification Expansion
+    
+    func toggleVerificationExpansion(verificationId: String) {
+        if expandedVerificationIds.contains(verificationId) {
+            expandedVerificationIds.remove(verificationId)
+        } else {
+            expandedVerificationIds.insert(verificationId)
+        }
+    }
+    
+    func isVerificationExpanded(_ verificationId: String) -> Bool {
+        return expandedVerificationIds.contains(verificationId)
+    }
+    
     // MARK: - Share URL Handling
     
     func handleSharedURL(_ url: String) {
@@ -154,6 +169,7 @@ class FactCheckViewModel: ObservableObject {
         videoURL = ""
         jobs = []
         expandedJobIds = []
+        expandedVerificationIds = []
         isLoading = false
         isRefreshing = false
         errorMessage = nil

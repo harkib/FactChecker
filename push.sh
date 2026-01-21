@@ -25,7 +25,8 @@ fi
 
 ECR_REPO=${ECR_REPO:-"$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/factchecker"}
 
-SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified")
+# SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified" "transcript-to-verified")
+SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-verified")
 IMAGE_TAG=${1:-"latest"}
 
 echo "Pushing images to ECR..."

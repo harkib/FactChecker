@@ -209,12 +209,20 @@ async def update_job_claims_async(session: AsyncSession, job_id: str, claims: li
 
 
 async def update_job_verified_claims_async(session: AsyncSession, job_id: str, verified_claims: Dict[str, Any]):
-    """Update job with verified claims and mark as completed (async, requires session)."""
+    """Update job with verified claims and mark as completed (async, requires session).
+    
+    New format: {title: str, verifications: [...]}
+    Old format: {overall: {...}, claim_results: [...]}
+    """
     try:
         stmt = select(Job).where(Job.id == uuid.UUID(job_id))
         result = await session.execute(stmt)
         job = result.scalar_one_or_none()
         if job:
+            # Handle new format: extract title if present
+            if "title" in verified_claims:
+                job.title = verified_claims["title"]
+            # Store full verified_claims structure in JSONB field
             job.verified_claims = verified_claims
             job.status = JobStatus.COMPLETED.value
             await session.commit()

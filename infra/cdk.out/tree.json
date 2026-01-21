@@ -880,23 +880,7 @@
                     "lifecyclePolicy": {
                       "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
                     },
-                    "repositoryName": "factchecker/transcript-to-claims",
-                    "repositoryPolicyText": {
-                      "Statement": [
-                        {
-                          "Action": [
-                            "ecr:BatchCheckLayerAvailability",
-                            "ecr:BatchGetImage",
-                            "ecr:GetDownloadUrlForLayer"
-                          ],
-                          "Effect": "Allow",
-                          "Principal": {
-                            "Service": "lambda.amazonaws.com"
-                          }
-                        }
-                      ],
-                      "Version": "2012-10-17"
-                    }
+                    "repositoryName": "factchecker/transcript-to-claims"
                   }
                 },
                 "constructInfo": {
@@ -926,7 +910,37 @@
                     "lifecyclePolicy": {
                       "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
                     },
-                    "repositoryName": "factchecker/claims-to-verified",
+                    "repositoryName": "factchecker/claims-to-verified"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecr.CfnRepository",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecr.Repository",
+              "version": "2.140.0"
+            }
+          },
+          "transcripttoverifiedRepository": {
+            "id": "transcripttoverifiedRepository",
+            "path": "EcrStack/transcripttoverifiedRepository",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "EcrStack/transcripttoverifiedRepository/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECR::Repository",
+                  "aws:cdk:cloudformation:props": {
+                    "imageScanningConfiguration": {
+                      "scanOnPush": true
+                    },
+                    "lifecyclePolicy": {
+                      "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+                    },
+                    "repositoryName": "factchecker/transcript-to-verified",
                     "repositoryPolicyText": {
                       "Statement": [
                         {
@@ -1034,33 +1048,17 @@
                   "version": "2.140.0"
                 }
               },
-              "Output{\"Fn::GetAtt\":[\"transcripttoclaimsRepository355DBC9C\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"transcripttoclaimsRepository355DBC9C\",\"Arn\"]}",
-                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"transcripttoclaimsRepository355DBC9C\",\"Arn\"]}",
+              "Output{\"Fn::GetAtt\":[\"transcripttoverifiedRepository3F93B13C\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"transcripttoverifiedRepository3F93B13C\",\"Arn\"]}",
+                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"transcripttoverifiedRepository3F93B13C\",\"Arn\"]}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
                 }
               },
-              "Output{\"Ref\":\"transcripttoclaimsRepository355DBC9C\"}": {
-                "id": "Output{\"Ref\":\"transcripttoclaimsRepository355DBC9C\"}",
-                "path": "EcrStack/Exports/Output{\"Ref\":\"transcripttoclaimsRepository355DBC9C\"}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}",
-                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Ref\":\"claimstoverifiedRepository0929902A\"}": {
-                "id": "Output{\"Ref\":\"claimstoverifiedRepository0929902A\"}",
-                "path": "EcrStack/Exports/Output{\"Ref\":\"claimstoverifiedRepository0929902A\"}",
+              "Output{\"Ref\":\"transcripttoverifiedRepository3F93B13C\"}": {
+                "id": "Output{\"Ref\":\"transcripttoverifiedRepository3F93B13C\"}",
+                "path": "EcrStack/Exports/Output{\"Ref\":\"transcripttoverifiedRepository3F93B13C\"}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -2046,22 +2044,6 @@
               "Output{\"Fn::GetAtt\":[\"TranscriptToClaimsQueueDB98A91C\",\"Arn\"]}": {
                 "id": "Output{\"Fn::GetAtt\":[\"TranscriptToClaimsQueueDB98A91C\",\"Arn\"]}",
                 "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"TranscriptToClaimsQueueDB98A91C\",\"Arn\"]}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Ref\":\"ClaimsToVerifiedQueue0B67AFAD\"}": {
-                "id": "Output{\"Ref\":\"ClaimsToVerifiedQueue0B67AFAD\"}",
-                "path": "QueueStack/Exports/Output{\"Ref\":\"ClaimsToVerifiedQueue0B67AFAD\"}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Fn::GetAtt\":[\"ClaimsToVerifiedQueue0B67AFAD\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"ClaimsToVerifiedQueue0B67AFAD\",\"Arn\"]}",
-                "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"ClaimsToVerifiedQueue0B67AFAD\",\"Arn\"]}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -4451,13 +4433,13 @@
               "version": "2.140.0"
             }
           },
-          "TranscriptToClaimsWorkerLambdaRole": {
-            "id": "TranscriptToClaimsWorkerLambdaRole",
-            "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole",
+          "TranscriptToVerifiedWorkerLambdaRole": {
+            "id": "TranscriptToVerifiedWorkerLambdaRole",
+            "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole",
             "children": {
-              "ImportTranscriptToClaimsWorkerLambdaRole": {
-                "id": "ImportTranscriptToClaimsWorkerLambdaRole",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/ImportTranscriptToClaimsWorkerLambdaRole",
+              "ImportTranscriptToVerifiedWorkerLambdaRole": {
+                "id": "ImportTranscriptToVerifiedWorkerLambdaRole",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/ImportTranscriptToVerifiedWorkerLambdaRole",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.Resource",
                   "version": "2.140.0"
@@ -4465,7 +4447,7 @@
               },
               "Resource": {
                 "id": "Resource",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/Resource",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/Resource",
                 "attributes": {
                   "aws:cdk:cloudformation:type": "AWS::IAM::Role",
                   "aws:cdk:cloudformation:props": {
@@ -4516,11 +4498,11 @@
               },
               "DefaultPolicy": {
                 "id": "DefaultPolicy",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/DefaultPolicy",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/DefaultPolicy",
                 "children": {
                   "Resource": {
                     "id": "Resource",
-                    "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaRole/DefaultPolicy/Resource",
+                    "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/DefaultPolicy/Resource",
                     "attributes": {
                       "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
                       "aws:cdk:cloudformation:props": {
@@ -4601,10 +4583,10 @@
                           ],
                           "Version": "2012-10-17"
                         },
-                        "policyName": "TranscriptToClaimsWorkerLambdaRoleDefaultPolicy21846F27",
+                        "policyName": "TranscriptToVerifiedWorkerLambdaRoleDefaultPolicy538F43B4",
                         "roles": [
                           {
-                            "Ref": "TranscriptToClaimsWorkerLambdaRole61731FE4"
+                            "Ref": "TranscriptToVerifiedWorkerLambdaRoleB037363C"
                           }
                         ]
                       }
@@ -4626,17 +4608,17 @@
               "version": "2.140.0"
             }
           },
-          "TranscriptToClaimsWorkerLambdaSecurityGroup": {
-            "id": "TranscriptToClaimsWorkerLambdaSecurityGroup",
-            "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaSecurityGroup",
+          "TranscriptToVerifiedWorkerLambdaSecurityGroup": {
+            "id": "TranscriptToVerifiedWorkerLambdaSecurityGroup",
+            "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaSecurityGroup",
             "children": {
               "Resource": {
                 "id": "Resource",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambdaSecurityGroup/Resource",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambdaSecurityGroup/Resource",
                 "attributes": {
                   "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
                   "aws:cdk:cloudformation:props": {
-                    "groupDescription": "Security group for TranscriptToClaimsWorker Lambda",
+                    "groupDescription": "Security group for TranscriptToVerifiedWorker Lambda",
                     "securityGroupEgress": [
                       {
                         "cidrIp": "0.0.0.0/0",
@@ -4660,13 +4642,13 @@
               "version": "2.140.0"
             }
           },
-          "TranscriptToClaimsWorkerLambda": {
-            "id": "TranscriptToClaimsWorkerLambda",
-            "path": "WorkerStacks/TranscriptToClaimsWorkerLambda",
+          "TranscriptToVerifiedWorkerLambda": {
+            "id": "TranscriptToVerifiedWorkerLambda",
+            "path": "WorkerStacks/TranscriptToVerifiedWorkerLambda",
             "children": {
               "Resource": {
                 "id": "Resource",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambda/Resource",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambda/Resource",
                 "attributes": {
                   "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
                   "aws:cdk:cloudformation:props": {
@@ -4682,7 +4664,7 @@
                                   "Fn::Split": [
                                     ":",
                                     {
-                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
                                     }
                                   ]
                                 }
@@ -4696,7 +4678,7 @@
                                   "Fn::Split": [
                                     ":",
                                     {
-                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
                                     }
                                   ]
                                 }
@@ -4708,7 +4690,7 @@
                             },
                             "/",
                             {
-                              "Fn::ImportValue": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
+                              "Fn::ImportValue": "EcrStack:ExportsOutputReftranscripttoverifiedRepository3F93B13CF5804017"
                             },
                             ":latest"
                           ]
@@ -4723,9 +4705,6 @@
                         "ASSETS_BUCKET": {
                           "Fn::ImportValue": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
                         },
-                        "CLAIMS_TO_VERIFIED_QUEUE_URL": {
-                          "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-                        },
                         "DB_HOST": {
                           "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
                         },
@@ -4756,12 +4735,12 @@
                         }
                       }
                     },
-                    "functionName": "factchecker-transcript-to-claims",
+                    "functionName": "factchecker-transcript-to-verified",
                     "memorySize": 2048,
                     "packageType": "Image",
                     "role": {
                       "Fn::GetAtt": [
-                        "TranscriptToClaimsWorkerLambdaRole61731FE4",
+                        "TranscriptToVerifiedWorkerLambdaRoleB037363C",
                         "Arn"
                       ]
                     },
@@ -4778,7 +4757,7 @@
                       "securityGroupIds": [
                         {
                           "Fn::GetAtt": [
-                            "TranscriptToClaimsWorkerLambdaSecurityGroupB213C290",
+                            "TranscriptToVerifiedWorkerLambdaSecurityGroupE31D8E5D",
                             "GroupId"
                           ]
                         }
@@ -4793,11 +4772,11 @@
               },
               "SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34": {
                 "id": "SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34",
-                "path": "WorkerStacks/TranscriptToClaimsWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34",
+                "path": "WorkerStacks/TranscriptToVerifiedWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34",
                 "children": {
                   "Resource": {
                     "id": "Resource",
-                    "path": "WorkerStacks/TranscriptToClaimsWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource",
+                    "path": "WorkerStacks/TranscriptToVerifiedWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource",
                     "attributes": {
                       "aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
                       "aws:cdk:cloudformation:props": {
@@ -4806,381 +4785,7 @@
                           "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
                         },
                         "functionName": {
-                          "Ref": "TranscriptToClaimsWorkerLambdaBE060AAD"
-                        },
-                        "functionResponseTypes": [
-                          "ReportBatchItemFailures"
-                        ],
-                        "maximumBatchingWindowInSeconds": 0
-                      }
-                    },
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_lambda.CfnEventSourceMapping",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_lambda.EventSourceMapping",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_lambda.DockerImageFunction",
-              "version": "2.140.0"
-            }
-          },
-          "ClaimsToVerifiedWorkerLambdaRole": {
-            "id": "ClaimsToVerifiedWorkerLambdaRole",
-            "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole",
-            "children": {
-              "ImportClaimsToVerifiedWorkerLambdaRole": {
-                "id": "ImportClaimsToVerifiedWorkerLambdaRole",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/ImportClaimsToVerifiedWorkerLambdaRole",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.Resource",
-                  "version": "2.140.0"
-                }
-              },
-              "Resource": {
-                "id": "Resource",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/Resource",
-                "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
-                  "aws:cdk:cloudformation:props": {
-                    "assumeRolePolicyDocument": {
-                      "Statement": [
-                        {
-                          "Action": "sts:AssumeRole",
-                          "Effect": "Allow",
-                          "Principal": {
-                            "Service": "lambda.amazonaws.com"
-                          }
-                        }
-                      ],
-                      "Version": "2012-10-17"
-                    },
-                    "managedPolicyArns": [
-                      {
-                        "Fn::Join": [
-                          "",
-                          [
-                            "arn:",
-                            {
-                              "Ref": "AWS::Partition"
-                            },
-                            ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-                          ]
-                        ]
-                      },
-                      {
-                        "Fn::Join": [
-                          "",
-                          [
-                            "arn:",
-                            {
-                              "Ref": "AWS::Partition"
-                            },
-                            ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-                          ]
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
-                  "version": "2.140.0"
-                }
-              },
-              "DefaultPolicy": {
-                "id": "DefaultPolicy",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/DefaultPolicy",
-                "children": {
-                  "Resource": {
-                    "id": "Resource",
-                    "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/DefaultPolicy/Resource",
-                    "attributes": {
-                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
-                      "aws:cdk:cloudformation:props": {
-                        "policyDocument": {
-                          "Statement": [
-                            {
-                              "Action": [
-                                "sqs:ChangeMessageVisibility",
-                                "sqs:DeleteMessage",
-                                "sqs:GetQueueAttributes",
-                                "sqs:GetQueueUrl",
-                                "sqs:ReceiveMessage"
-                              ],
-                              "Effect": "Allow",
-                              "Resource": {
-                                "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-                              }
-                            },
-                            {
-                              "Action": [
-                                "s3:GetObject",
-                                "s3:ListBucket",
-                                "s3:PutObject",
-                                "sqs:SendMessage"
-                              ],
-                              "Effect": "Allow",
-                              "Resource": "*"
-                            },
-                            {
-                              "Action": "rds-db:connect",
-                              "Effect": "Allow",
-                              "Resource": {
-                                "Fn::Join": [
-                                  "",
-                                  [
-                                    "arn:aws:rds-db:",
-                                    {
-                                      "Ref": "AWS::Region"
-                                    },
-                                    ":",
-                                    {
-                                      "Ref": "AWS::AccountId"
-                                    },
-                                    ":dbuser:*/postgres"
-                                  ]
-                                ]
-                              }
-                            },
-                            {
-                              "Action": "secretsmanager:GetSecretValue",
-                              "Effect": "Allow",
-                              "Resource": [
-                                {
-                                  "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-                                },
-                                {
-                                  "Fn::Join": [
-                                    "",
-                                    [
-                                      "arn:",
-                                      {
-                                        "Ref": "AWS::Partition"
-                                      },
-                                      ":secretsmanager:",
-                                      {
-                                        "Ref": "AWS::Region"
-                                      },
-                                      ":",
-                                      {
-                                        "Ref": "AWS::AccountId"
-                                      },
-                                      ":secret:factchecker/openai-api-key-*"
-                                    ]
-                                  ]
-                                }
-                              ]
-                            }
-                          ],
-                          "Version": "2012-10-17"
-                        },
-                        "policyName": "ClaimsToVerifiedWorkerLambdaRoleDefaultPolicyC72DA2BD",
-                        "roles": [
-                          {
-                            "Ref": "ClaimsToVerifiedWorkerLambdaRole1358B1C9"
-                          }
-                        ]
-                      }
-                    },
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_iam.Policy",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_iam.Role",
-              "version": "2.140.0"
-            }
-          },
-          "ClaimsToVerifiedWorkerLambdaSecurityGroup": {
-            "id": "ClaimsToVerifiedWorkerLambdaSecurityGroup",
-            "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaSecurityGroup",
-            "children": {
-              "Resource": {
-                "id": "Resource",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambdaSecurityGroup/Resource",
-                "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
-                  "aws:cdk:cloudformation:props": {
-                    "groupDescription": "Security group for ClaimsToVerifiedWorker Lambda",
-                    "securityGroupEgress": [
-                      {
-                        "cidrIp": "0.0.0.0/0",
-                        "description": "Allow all outbound traffic by default",
-                        "ipProtocol": "-1"
-                      }
-                    ],
-                    "vpcId": {
-                      "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_ec2.CfnSecurityGroup",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_ec2.SecurityGroup",
-              "version": "2.140.0"
-            }
-          },
-          "ClaimsToVerifiedWorkerLambda": {
-            "id": "ClaimsToVerifiedWorkerLambda",
-            "path": "WorkerStacks/ClaimsToVerifiedWorkerLambda",
-            "children": {
-              "Resource": {
-                "id": "Resource",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambda/Resource",
-                "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
-                  "aws:cdk:cloudformation:props": {
-                    "code": {
-                      "imageUri": {
-                        "Fn::Join": [
-                          "",
-                          [
-                            {
-                              "Fn::Select": [
-                                4,
-                                {
-                                  "Fn::Split": [
-                                    ":",
-                                    {
-                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            ".dkr.ecr.",
-                            {
-                              "Fn::Select": [
-                                3,
-                                {
-                                  "Fn::Split": [
-                                    ":",
-                                    {
-                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            ".",
-                            {
-                              "Ref": "AWS::URLSuffix"
-                            },
-                            "/",
-                            {
-                              "Fn::ImportValue": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
-                            },
-                            ":latest"
-                          ]
-                        ]
-                      }
-                    },
-                    "environment": {
-                      "variables": {
-                        "CLAIMS_TO_VERIFIED_QUEUE_URL": {
-                          "Fn::ImportValue": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-                        },
-                        "DB_HOST": {
-                          "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
-                        },
-                        "DB_PORT": "5432",
-                        "DB_NAME": "factchecker",
-                        "DB_SECRET_ARN": {
-                          "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
-                        },
-                        "OPENAI_SECRET_ARN": {
-                          "Fn::Join": [
-                            "",
-                            [
-                              "arn:",
-                              {
-                                "Ref": "AWS::Partition"
-                              },
-                              ":secretsmanager:",
-                              {
-                                "Ref": "AWS::Region"
-                              },
-                              ":",
-                              {
-                                "Ref": "AWS::AccountId"
-                              },
-                              ":secret:factchecker/openai-api-key"
-                            ]
-                          ]
-                        }
-                      }
-                    },
-                    "functionName": "factchecker-claims-to-verified",
-                    "memorySize": 1024,
-                    "packageType": "Image",
-                    "role": {
-                      "Fn::GetAtt": [
-                        "ClaimsToVerifiedWorkerLambdaRole1358B1C9",
-                        "Arn"
-                      ]
-                    },
-                    "timeout": 900,
-                    "vpcConfig": {
-                      "subnetIds": [
-                        {
-                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
-                        },
-                        {
-                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
-                        }
-                      ],
-                      "securityGroupIds": [
-                        {
-                          "Fn::GetAtt": [
-                            "ClaimsToVerifiedWorkerLambdaSecurityGroupFF0B602C",
-                            "GroupId"
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
-                  "version": "2.140.0"
-                }
-              },
-              "SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E": {
-                "id": "SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E",
-                "path": "WorkerStacks/ClaimsToVerifiedWorkerLambda/SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E",
-                "children": {
-                  "Resource": {
-                    "id": "Resource",
-                    "path": "WorkerStacks/ClaimsToVerifiedWorkerLambda/SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E/Resource",
-                    "attributes": {
-                      "aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
-                      "aws:cdk:cloudformation:props": {
-                        "batchSize": 10,
-                        "eventSourceArn": {
-                          "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-                        },
-                        "functionName": {
-                          "Ref": "ClaimsToVerifiedWorkerLambdaC32507AB"
+                          "Ref": "TranscriptToVerifiedWorkerLambdaFEBC5F50"
                         },
                         "functionResponseTypes": [
                           "ReportBatchItemFailures"

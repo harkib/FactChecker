@@ -7,9 +7,9 @@ TESTS = [
     'instagram_0',
 ]
 
-VIDEO_DIR = "local/downloads"
-FRAMES_DIR = "local/data/frames"
 
+AUDIO_DIR = "local/data/audio"
+VIDEO_DIR = "local/downloads"
 
 def parse_video(job_id: str) -> bool:
     """
@@ -25,31 +25,19 @@ def parse_video(job_id: str) -> bool:
     """
     try:
         video_path = os.path.join(VIDEO_DIR, f"{job_id}.mp4")
-        output_path = os.path.join(FRAMES_DIR, job_id)
+        output_path = os.path.join(AUDIO_DIR, job_id)
         os.makedirs(output_path, exist_ok=True)
-        temp_frame_pattern = os.path.join(output_path, 'frame_%06d.jpg')
+        audio_path = os.path.join(output_path, 'audio.wav')
         (
             ffmpeg
             .input(video_path)
-            .filter('fps', fps='1/3')  # 1 frame per 3 seconds
-            .output(temp_frame_pattern, q=2)
+            .output(audio_path, acodec='pcm_s16le', ar=44100, ac=2)
             .overwrite_output()
             .run(quiet=True)
         )
-        # (
-        #     ffmpeg
-        #     .input(video_path)
-        #     .output(
-        #         temp_frame_pattern,
-        #         q=2,  # 'q' sets the output JPEG quality (lower is higher quality)
-        #         # fps_mode='vfr',  # variable frame rate for extracted frames
-        #         # vf="select='gt(scene,0.1)'"
-        #     )
-        #     .overwrite_output()
-        #     .run(quiet=True)
-        # )
+
     except Exception as e:
-        print(f"[{job_id}] Error extracting frames: {e}")
+        print(f"[{job_id}] Error extracting audio: {e}")
         return False
     else:
         return True

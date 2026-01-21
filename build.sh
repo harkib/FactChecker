@@ -36,7 +36,7 @@ elif [ -z "$ECR_REPO" ]; then
     ECR_REPO="factchecker"  # Local build without ECR
 fi
 
-SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified")
+SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified" "transcript-to-verified")
 IMAGE_TAG=${1:-"latest"}
 PLATFORM="linux/amd64"
 

@@ -378,25 +378,6 @@
    "Export": {
     "Name": "QueueStack:ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
    }
-  },
-  "ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58": {
-   "Value": {
-    "Ref": "ClaimsToVerifiedQueue0B67AFAD"
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-   }
-  },
-  "ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86": {
-   "Value": {
-    "Fn::GetAtt": [
-     "ClaimsToVerifiedQueue0B67AFAD",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
-   }
   }
  },
  "Parameters": {

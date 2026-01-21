@@ -92,23 +92,7 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/transcript-to-claims",
-    "RepositoryPolicyText": {
-     "Statement": [
-      {
-       "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:BatchGetImage",
-        "ecr:GetDownloadUrlForLayer"
-       ],
-       "Effect": "Allow",
-       "Principal": {
-        "Service": "lambda.amazonaws.com"
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    }
+    "RepositoryName": "factchecker/transcript-to-claims"
    },
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
@@ -125,7 +109,24 @@
     "LifecyclePolicy": {
      "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
     },
-    "RepositoryName": "factchecker/claims-to-verified",
+    "RepositoryName": "factchecker/claims-to-verified"
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EcrStack/claimstoverifiedRepository/Resource"
+   }
+  },
+  "transcripttoverifiedRepository3F93B13C": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "LifecyclePolicy": {
+     "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+    },
+    "RepositoryName": "factchecker/transcript-to-verified",
     "RepositoryPolicyText": {
      "Statement": [
       {
@@ -146,7 +147,7 @@
    "UpdateReplacePolicy": "Retain",
    "DeletionPolicy": "Retain",
    "Metadata": {
-    "aws:cdk:path": "EcrStack/claimstoverifiedRepository/Resource"
+    "aws:cdk:path": "EcrStack/transcripttoverifiedRepository/Resource"
    }
   },
   "CDKMetadata": {
@@ -428,42 +429,23 @@
     "Name": "EcrStack:ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
    }
   },
-  "ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5": {
+  "ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C": {
    "Value": {
     "Fn::GetAtt": [
-     "transcripttoclaimsRepository355DBC9C",
+     "transcripttoverifiedRepository3F93B13C",
      "Arn"
     ]
    },
    "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+    "Name": "EcrStack:ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
    }
   },
-  "ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5": {
+  "ExportsOutputReftranscripttoverifiedRepository3F93B13CF5804017": {
    "Value": {
-    "Ref": "transcripttoclaimsRepository355DBC9C"
+    "Ref": "transcripttoverifiedRepository3F93B13C"
    },
    "Export": {
-    "Name": "EcrStack:ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
-   }
-  },
-  "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE": {
-   "Value": {
-    "Fn::GetAtt": [
-     "claimstoverifiedRepository0929902A",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-   }
-  },
-  "ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7": {
-   "Value": {
-    "Ref": "claimstoverifiedRepository0929902A"
-   },
-   "Export": {
-    "Name": "EcrStack:ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
+    "Name": "EcrStack:ExportsOutputReftranscripttoverifiedRepository3F93B13CF5804017"
    }
   }
  },

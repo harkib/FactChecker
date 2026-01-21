@@ -246,7 +246,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a6c548acb6a10ad42f5171e750bd842e5ce9274424bbab1efc42d20940ab7505.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/610fc081897e631be8d90d8789cbc6cfcdc0710fbdf81a54c57809b4d660c5da.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -290,6 +290,12 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "claimstoverifiedRepository0929902A"
+          }
+        ],
+        "/EcrStack/transcripttoverifiedRepository/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "transcripttoverifiedRepository3F93B13C"
           }
         ],
         "/EcrStack/CDKMetadata/Default": [
@@ -340,28 +346,16 @@
             "data": "ExportsOutputRefvideototranscriptRepository1F507E6780ACE95D"
           }
         ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"transcripttoclaimsRepository355DBC9C\",\"Arn\"]}": [
+        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"transcripttoverifiedRepository3F93B13C\",\"Arn\"]}": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAtttranscripttoclaimsRepository355DBC9CArn8F127EC5"
+            "data": "ExportsOutputFnGetAtttranscripttoverifiedRepository3F93B13CArn64F7C65C"
           }
         ],
-        "/EcrStack/Exports/Output{\"Ref\":\"transcripttoclaimsRepository355DBC9C\"}": [
+        "/EcrStack/Exports/Output{\"Ref\":\"transcripttoverifiedRepository3F93B13C\"}": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputReftranscripttoclaimsRepository355DBC9C797BC5C5"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"claimstoverifiedRepository0929902A\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttclaimstoverifiedRepository0929902AArn1BB751BE"
-          }
-        ],
-        "/EcrStack/Exports/Output{\"Ref\":\"claimstoverifiedRepository0929902A\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefclaimstoverifiedRepository0929902AE55FDCB7"
+            "data": "ExportsOutputReftranscripttoverifiedRepository3F93B13CF5804017"
           }
         ],
         "/EcrStack/BootstrapVersion": [
@@ -625,7 +619,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a0c3e4b4b06d94d13858383bda31da3990e30719f490081beff4c2a577e2e687.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fb3a29c878641cdaac06cd008b7ee687ac0a2ad3cbe66f0941ec3460c862f46a.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -717,18 +711,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputFnGetAttTranscriptToClaimsQueueDB98A91CArn58DE058B"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Ref\":\"ClaimsToVerifiedQueue0B67AFAD\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefClaimsToVerifiedQueue0B67AFADBC30BF58"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"ClaimsToVerifiedQueue0B67AFAD\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttClaimsToVerifiedQueue0B67AFADArnBB85AA86"
           }
         ],
         "/QueueStack/BootstrapVersion": [
@@ -1020,7 +1002,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/26d2a042576998b01414b6d24a0df4791b808a2ccbdd9250438616ba3291f5f4.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a54fe2f0090070a7dd700df6e500f31186ffe54fdc43fab1ef7b7c0e082990e7.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -1113,64 +1095,34 @@
             "data": "VideoToTranscriptWorkerLambdaSqsEventSourceQueueStackVideoToTranscriptQueue03C3A8722DCC7C48"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerLambdaRole/Resource": [
+        "/WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerLambdaRole61731FE4"
+            "data": "TranscriptToVerifiedWorkerLambdaRoleB037363C"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerLambdaRole/DefaultPolicy/Resource": [
+        "/WorkerStacks/TranscriptToVerifiedWorkerLambdaRole/DefaultPolicy/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerLambdaRoleDefaultPolicy21846F27"
+            "data": "TranscriptToVerifiedWorkerLambdaRoleDefaultPolicy538F43B4"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerLambdaSecurityGroup/Resource": [
+        "/WorkerStacks/TranscriptToVerifiedWorkerLambdaSecurityGroup/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerLambdaSecurityGroupB213C290"
+            "data": "TranscriptToVerifiedWorkerLambdaSecurityGroupE31D8E5D"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerLambda/Resource": [
+        "/WorkerStacks/TranscriptToVerifiedWorkerLambda/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerLambdaBE060AAD"
+            "data": "TranscriptToVerifiedWorkerLambdaFEBC5F50"
           }
         ],
-        "/WorkerStacks/TranscriptToClaimsWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource": [
+        "/WorkerStacks/TranscriptToVerifiedWorkerLambda/SqsEventSource:QueueStackTranscriptToClaimsQueue4BB7BA34/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "TranscriptToClaimsWorkerLambdaSqsEventSourceQueueStackTranscriptToClaimsQueue4BB7BA3408FB0F92"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerLambdaRole1358B1C9"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerLambdaRole/DefaultPolicy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerLambdaRoleDefaultPolicyC72DA2BD"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerLambdaSecurityGroup/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerLambdaSecurityGroupFF0B602C"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerLambda/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerLambdaC32507AB"
-          }
-        ],
-        "/WorkerStacks/ClaimsToVerifiedWorkerLambda/SqsEventSource:QueueStackClaimsToVerifiedQueueBE4E1F7E/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ClaimsToVerifiedWorkerLambdaSqsEventSourceQueueStackClaimsToVerifiedQueueBE4E1F7EA7BC75D4"
+            "data": "TranscriptToVerifiedWorkerLambdaSqsEventSourceQueueStackTranscriptToClaimsQueue4BB7BA3425FD05F1"
           }
         ],
         "/WorkerStacks/CDKMetadata/Default": [

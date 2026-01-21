@@ -7,6 +7,68 @@
 
 import SwiftUI
 
+// MARK: - Citation Model
+
+struct Citation: Identifiable {
+    let id: Int
+    let url: String
+    let originalText: String
+}
+
+// MARK: - Citation Parser
+
+extension String {
+    func parseCitations() -> (cleanedText: String, citations: [Citation]) {
+        var citations: [Citation] = []
+        var cleanedText = self
+        var citationNumber = 1
+        
+        // Regex pattern to match markdown links: [text](url) or ([text](url))
+        // This pattern handles both formats:
+        // - [text](url) - standard markdown
+        // - ([text](url)) - OpenAI format with outer parentheses
+        let pattern = #"(\(?)\[([^\]]+)\]\(([^\)]+)\)(\)?)"#
+        
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return (self, [])
+        }
+        
+        let nsString = self as NSString
+        let matches = regex.matches(in: self, options: [], range: NSRange(location: 0, length: nsString.length))
+        
+        // Process matches in reverse order to maintain correct indices when replacing
+        for match in matches.reversed() {
+            if match.numberOfRanges >= 4 {
+                let originalTextRange = match.range
+                let linkTextRange = match.range(at: 2) // Group 2 is the link text
+                let urlRange = match.range(at: 3) // Group 3 is the URL
+                
+                if let urlString = Range(urlRange, in: self) {
+                    let url = String(self[urlString])
+                    let originalText = nsString.substring(with: linkTextRange)
+                    
+                    let citation = Citation(
+                        id: citationNumber,
+                        url: url,
+                        originalText: originalText
+                    )
+                    citations.insert(citation, at: 0) // Insert at beginning since we're processing in reverse
+                    
+                    // Replace the markdown link (including outer parentheses if present) with the citation number
+                    let replacement = "[\(citationNumber)]"
+                    if let range = Range(originalTextRange, in: cleanedText) {
+                        cleanedText.replaceSubrange(range, with: replacement)
+                    }
+                    
+                    citationNumber += 1
+                }
+            }
+        }
+        
+        return (cleanedText, citations)
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var viewModel: FactCheckViewModel
     
@@ -81,7 +143,11 @@ struct ContentView: View {
                     .listRowSeparator(.hidden)
                 } else {
                     ForEach(viewModel.jobs, id: \.id) { job in
-                        JobCardView(job: job, isExpanded: viewModel.isJobExpanded(job.id)) {
+                        JobCardView(
+                            job: job,
+                            isExpanded: viewModel.isJobExpanded(job.id),
+                            viewModel: viewModel
+                        ) {
                             if job.status == "completed" {
                                 viewModel.toggleJobExpansion(jobId: job.id)
                             }
@@ -105,6 +171,7 @@ struct ContentView: View {
 struct JobCardView: View {
     let job: JobResponse
     let isExpanded: Bool
+    let viewModel: FactCheckViewModel
     let onTap: () -> Void
     
     var body: some View {
@@ -120,9 +187,9 @@ struct JobCardView: View {
                         // Status Badge
                         StatusBadge(status: job.status)
                         
-                        // Verdict Badge (if completed)
-                        if job.status == "completed", let verifiedClaims = job.verified_claims {
-                            VerdictBadge(verdict: verifiedClaims.overall.verdict)
+                        // Verdict Badge (if completed) - show first verification verdict
+                        if job.status == "completed", let verifiedClaims = job.verified_claims, let firstVerdict = verifiedClaims.verifications.first?.verdict {
+                            VerdictBadge(verdict: firstVerdict)
                         }
                     }
                 }
@@ -146,33 +213,21 @@ struct JobCardView: View {
                 Divider()
                 
                 if let verifiedClaims = job.verified_claims {
-                    // Summary Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Summary")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-                        
-                        Text(verifiedClaims.overall.summary)
-                            .font(.body)
-                            .foregroundColor(.primary)
-                    }
-                    .padding(.vertical, 8)
-                    
-                    // Claims Section
-                    if let claims = job.claims, !claims.isEmpty {
+                    // Verifications Section (replaces claims + claim_results)
+                    if !verifiedClaims.verifications.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Claims")
+                            Text("Verifications")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.secondary)
                             
-                            ForEach(Array(zip(claims.indices, claims)), id: \.0) { index, claim in
-                                if index < verifiedClaims.claim_results.count {
-                                    ClaimCardView(
-                                        claim: claim,
-                                        claimResult: verifiedClaims.claim_results[index]
-                                    )
+                            ForEach(Array(verifiedClaims.verifications.enumerated()), id: \.offset) { index, verification in
+                                VerificationCardView(
+                                    verification: verification,
+                                    verificationId: "\(job.id)-\(index)",
+                                    isExpanded: viewModel.isVerificationExpanded("\(job.id)-\(index)")
+                                ) {
+                                    viewModel.toggleVerificationExpansion(verificationId: "\(job.id)-\(index)")
                                 }
                             }
                         }
@@ -206,37 +261,118 @@ struct JobCardView: View {
     }
 }
 
-// MARK: - Claim Card View
+// MARK: - Verification Card View
 
-struct ClaimCardView: View {
-    let claim: String
-    let claimResult: ClaimResult
+struct VerificationCardView: View {
+    let verification: Verification
+    let verificationId: String
+    let isExpanded: Bool
+    let onTap: () -> Void
+    
+    private var parsedRationale: (cleanedText: String, citations: [Citation]) {
+        verification.rationale.parseCitations()
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(claim)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-            
-            HStack {
-                VerdictBadge(verdict: claimResult.verdict)
+            // Collapsed Header (always visible)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if !verification.claim.isEmpty {
+                        Text(verification.claim)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                    }
+                    
+                    HStack {
+                        VerdictBadge(verdict: verification.verdict)
+                        Spacer()
+                    }
+                }
                 
                 Spacer()
                 
-                Text(String(format: "%.0f%%", claimResult.confidence * 100))
-                    .font(.caption)
+                // Expand/Collapse Indicator
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTap()
             }
             
-            Text(claimResult.rationale)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            // Expanded Content (rationale and citations)
+            if isExpanded {
+                Divider()
+                    .padding(.vertical, 4)
+                
+                let (cleanedText, citations) = parsedRationale
+                
+                if !cleanedText.isEmpty {
+                    Text(cleanedText)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                // Citations Section
+                if !citations.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(citations) { citation in
+                            CitationView(citation: citation)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
         }
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Citation View
+
+struct CitationView: View {
+    let citation: Citation
+    
+    var body: some View {
+        Button(action: {
+            if let url = URL(string: citation.url) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            HStack(spacing: 12) {
+                // Numbered icon on the left
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 28, height: 28)
+                    Text("\(citation.id)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                }
+                
+                // URL text on the right
+                Text(citation.url)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Spacer()
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .background(Color(.tertiarySystemBackground))
+            .cornerRadius(6)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
