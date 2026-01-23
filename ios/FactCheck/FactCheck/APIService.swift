@@ -198,5 +198,47 @@ class APIService {
             throw APIError.networkError(error)
         }
     }
+    
+    // MARK: - Get Thumbnail URL
+    
+    func getThumbnailURL(jobId: String) async throws -> URL {
+        guard let url = URL(string: "\(baseURL)/jobs/\(jobId)/thumbnail-url") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addAPIKey(to: &request)
+        addClientID(to: &request)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMessage = extractErrorMessage(from: data)
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            }
+            
+            // Parse response: {"url": "https://..."}
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let urlString = json["url"] as? String,
+               let thumbnailURL = URL(string: urlString) {
+                return thumbnailURL
+            }
+            
+            throw APIError.invalidResponse
+            
+        } catch let error as APIError {
+            throw error
+        } catch let error as DecodingError {
+            throw APIError.decodingError(error)
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
 }
 

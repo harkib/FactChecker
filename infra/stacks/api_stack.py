@@ -61,6 +61,18 @@ class ApiStack(Stack):
                 resources=[database_secret.secret_arn, openai_secret.secret_arn],
             )
         )
+        
+        # Grant S3 permissions for generating presigned URLs
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["s3:GetObject"],
+                resources=[
+                    f"arn:aws:s3:::{assets_bucket_name}/*",
+                    f"arn:aws:s3:::{video_bucket_name}/*",
+                ],
+            )
+        )
 
         # Create execution role
         execution_role = iam.Role(

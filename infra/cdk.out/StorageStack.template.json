@@ -534,20 +534,20 @@
   }
  },
  "Outputs": {
-  "ExportsOutputRefVideoBucket6ED8E1AF864760DE": {
-   "Value": {
-    "Ref": "VideoBucket6ED8E1AF"
-   },
-   "Export": {
-    "Name": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
-   }
-  },
   "ExportsOutputRefAssetsBucket5CB761808BF2E271": {
    "Value": {
     "Ref": "AssetsBucket5CB76180"
    },
    "Export": {
     "Name": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
+   }
+  },
+  "ExportsOutputRefVideoBucket6ED8E1AF864760DE": {
+   "Value": {
+    "Ref": "VideoBucket6ED8E1AF"
+   },
+   "Export": {
+    "Name": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
    }
   }
  },

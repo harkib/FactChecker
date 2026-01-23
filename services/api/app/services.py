@@ -1,6 +1,7 @@
 """Business logic for the API service."""
 import os
 import sys
+from typing import Optional
 
 # Add shared directory to path
 # From /app/app/services.py, go up one level to /app, then shared is at /app/shared
@@ -9,6 +10,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.database import create_job_async, get_job_async, update_job_status_async, get_jobs_by_client_id_async, JobStatus
 from shared.logger import get_logger, bind_job_id
+import aioboto3
+from botocore.exceptions import ClientError
 
 # Initialize logger with resource name
 logger = get_logger("api")
@@ -69,4 +72,33 @@ async def get_jobs_by_client_id(db: AsyncSession, client_id: str):
     """
     logger.debug("Retrieving jobs from database", client_id=client_id)
     return await get_jobs_by_client_id_async(db, client_id, limit=10)
+
+
+async def generate_presigned_frame_url(bucket_name: str, frame_key: str, expiration: int = 3600) -> Optional[str]:
+    """Generate a presigned URL for an S3 frame object.
+    
+    Args:
+        bucket_name: Name of the S3 bucket
+        frame_key: S3 key of the frame object
+        expiration: URL expiration time in seconds (default: 1 hour)
+        
+    Returns:
+        Presigned URL string or None if generation fails
+    """
+    try:
+        session = aioboto3.Session()
+        async with session.client("s3", region_name=os.getenv("AWS_REGION", "us-east-1")) as s3_client:
+            # Generate presigned URL for GET operation
+            url = await s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": frame_key},
+                ExpiresIn=expiration
+            )
+            return url
+    except ClientError as e:
+        logger.error("Error generating presigned URL", bucket=bucket_name, key=frame_key, error=str(e))
+        return None
+    except Exception as e:
+        logger.error("Unexpected error generating presigned URL", bucket=bucket_name, key=frame_key, error=str(e))
+        return None
 

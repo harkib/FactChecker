@@ -174,10 +174,71 @@ struct JobCardView: View {
     let viewModel: FactCheckViewModel
     let onTap: () -> Void
     
+    @State private var thumbnailURL: URL?
+    @State private var isLoadingThumbnail = false
+    
+    private func loadThumbnail() {
+        // Only load if thumbnailURL is nil, not already loading, and job has frames
+        guard thumbnailURL == nil, !isLoadingThumbnail, job.frames_s3_prefix != nil else {
+            return
+        }
+        
+        isLoadingThumbnail = true
+        Task {
+            do {
+                let url = try await APIService.shared.getThumbnailURL(jobId: job.id)
+                await MainActor.run {
+                    thumbnailURL = url
+                    isLoadingThumbnail = false
+                }
+            } catch {
+                await MainActor.run {
+                    isLoadingThumbnail = false
+                }
+            }
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Collapsed Header
-            HStack {
+            HStack(spacing: 12) {
+                // First frame thumbnail
+                if let url = thumbnailURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(width: 60, height: 60)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 60, height: 60)
+                                .clipped()
+                                .cornerRadius(8)
+                        case .failure:
+                            Image(systemName: "photo")
+                                .foregroundColor(.secondary)
+                                .frame(width: 60, height: 60)
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(8)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else if isLoadingThumbnail {
+                    ProgressView()
+                        .frame(width: 60, height: 60)
+                } else {
+                    // Placeholder when no frame available
+                    Image(systemName: "photo")
+                        .foregroundColor(.secondary)
+                        .frame(width: 60, height: 60)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                }
+                
                 VStack(alignment: .leading, spacing: 4) {
                     Text(job.title ?? "Untitled")
                         .font(.headline)
@@ -206,6 +267,9 @@ struct JobCardView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 onTap()
+            }
+            .onAppear {
+                loadThumbnail()
             }
             
             // Expanded Content (only if completed and expanded)
@@ -357,8 +421,8 @@ struct CitationView: View {
                         .foregroundColor(.blue)
                 }
                 
-                // URL text on the right
-                Text(citation.url)
+                // Citation text (from [text](url)) on the right
+                Text(citation.originalText)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(2)

@@ -1454,17 +1454,17 @@
             "id": "Exports",
             "path": "StorageStack/Exports",
             "children": {
-              "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": {
-                "id": "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
-                "path": "StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
+              "Output{\"Ref\":\"AssetsBucket5CB76180\"}": {
+                "id": "Output{\"Ref\":\"AssetsBucket5CB76180\"}",
+                "path": "StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
                 }
               },
-              "Output{\"Ref\":\"AssetsBucket5CB76180\"}": {
-                "id": "Output{\"Ref\":\"AssetsBucket5CB76180\"}",
-                "path": "StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}",
+              "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": {
+                "id": "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
+                "path": "StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -2182,6 +2182,36 @@
                                         "Ref": "AWS::AccountId"
                                       },
                                       ":secret:factchecker/openai-api-key"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": "s3:GetObject",
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      "arn:aws:s3:::",
+                                      {
+                                        "Fn::ImportValue": "StorageStack:ExportsOutputRefAssetsBucket5CB761808BF2E271"
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      "arn:aws:s3:::",
+                                      {
+                                        "Fn::ImportValue": "StorageStack:ExportsOutputRefVideoBucket6ED8E1AF864760DE"
+                                      },
+                                      "/*"
                                     ]
                                   ]
                                 }

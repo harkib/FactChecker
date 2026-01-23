@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
-from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id
+from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url
 from shared.database import init_db, get_db, JobStatus
 from shared.logger import get_logger, bind_job_id
 
@@ -162,6 +162,62 @@ async def get_job_results(job_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Job is not completed. Current status: {job['status']}")
     job_logger.info("Job results retrieved successfully")
     return JobResponse(**job)
+
+
+@app.get("/jobs/{job_id}/thumbnail-url")
+async def get_thumbnail_url(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id)
+):
+    """Get presigned URL for the first frame thumbnail of a job."""
+    job_logger = bind_job_id(logger, job_id)
+    job_logger.debug("Getting thumbnail URL")
+    
+    try:
+        # Get job from database
+        job = await get_job_by_id(db, job_id)
+        if not job:
+            job_logger.warning("Job not found")
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # Optional: Validate that the job belongs to the requesting client
+        if client_id and job.get("client_id") != client_id:
+            job_logger.warning("Job does not belong to client", client_id=client_id, job_client_id=job.get("client_id"))
+            raise HTTPException(status_code=403, detail="Job does not belong to this client")
+        
+        # Check if job has frames
+        frames_s3_prefix = job.get("frames_s3_prefix")
+        if not frames_s3_prefix:
+            job_logger.debug("Job has no frames")
+            raise HTTPException(status_code=404, detail="Job has no frames")
+        
+        # Construct the first frame key (first frame is always 0.00.jpg)
+        # Ensure prefix ends with / if it doesn't already
+        prefix = frames_s3_prefix if frames_s3_prefix.endswith("/") else f"{frames_s3_prefix}/"
+        frame_key = f"{prefix}0.00.jpg"
+        
+        # Get assets bucket name from environment
+        assets_bucket = os.getenv("ASSETS_BUCKET")
+        if not assets_bucket:
+            job_logger.error("ASSETS_BUCKET not configured")
+            raise HTTPException(status_code=500, detail="ASSETS_BUCKET not configured")
+        
+        # Generate presigned URL (1 hour expiration)
+        presigned_url = await generate_presigned_frame_url(assets_bucket, frame_key, expiration=3600)
+        
+        if not presigned_url:
+            job_logger.error("Failed to generate presigned URL")
+            raise HTTPException(status_code=500, detail="Failed to generate presigned URL")
+        
+        job_logger.debug("Thumbnail URL generated successfully")
+        return {"url": presigned_url}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        job_logger.error("Failed to get thumbnail URL", exc_info=True, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get thumbnail URL: {str(e)}")
 
 
 @app.get("/health")

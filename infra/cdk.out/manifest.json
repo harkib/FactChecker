@@ -390,7 +390,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e4453cdd5e389db966306c6e3fc540d53d2e9ee6d4d36c6641108af2f874c365.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c5227660ace26d7ebe4ec52b6f60f926f7f333c1462a8388de7d519896fed072.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -466,16 +466,16 @@
             "data": "CDKMetadataAvailable"
           }
         ],
-        "/StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefVideoBucket6ED8E1AF864760DE"
-          }
-        ],
         "/StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}": [
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputRefAssetsBucket5CB761808BF2E271"
+          }
+        ],
+        "/StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputRefVideoBucket6ED8E1AF864760DE"
           }
         ],
         "/StorageStack/BootstrapVersion": [
@@ -745,7 +745,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/71e790b1c1b1a6c78c00548058397e053b073fa34b25a71f277c5ebd28075bd9.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/30af132a55ffc132f804c7f7fc65bed251b1ada1b70f44dd7ec2d1e2652cf705.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -760,8 +760,8 @@
       "dependencies": [
         "VpcStack",
         "DatabaseStack",
-        "EcrStack",
         "StorageStack",
+        "EcrStack",
         "QueueStack",
         "ApiStack.assets"
       ],
