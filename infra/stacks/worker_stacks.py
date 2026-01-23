@@ -57,6 +57,11 @@ class WorkerStacks(Stack):
         openai_secret = secretsmanager.Secret.from_secret_name_v2(
             self, "OpenAISecret", "factchecker/openai-api-key"
         )
+        
+        # Get Gemini secret
+        gemini_secret = secretsmanager.Secret.from_secret_name_v2(
+            self, "GeminiSecret", "factchecker/gemini-api-key"
+        )
 
         # Common execution role for all workers
         execution_role = iam.Role(
@@ -71,14 +76,15 @@ class WorkerStacks(Stack):
         )
 
         # Grant Secrets Manager permissions to execution role
-        # Note: OpenAI secret uses from_secret_name_v2 which returns partial ARN without suffix
-        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for OpenAI secret
+        # Note: OpenAI and Gemini secrets use from_secret_name_v2 which returns partial ARN without suffix
+        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for secrets
         openai_secret_arn_pattern = f"{openai_secret.secret_arn}-*"
+        gemini_secret_arn_pattern = f"{gemini_secret.secret_arn}-*"
         execution_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[database_secret.secret_arn, openai_secret_arn_pattern],
+                resources=[database_secret.secret_arn, openai_secret_arn_pattern, gemini_secret_arn_pattern],
             )
         )
 
@@ -170,11 +176,13 @@ class WorkerStacks(Stack):
                 {
                     "TRANSCRIPT_TO_CLAIMS_QUEUE_URL": transcript_to_claims_queue_url,
                     "ASSETS_BUCKET": assets_bucket_name,
+                    "API_PROVIDER": "gemini",  # Default to Gemini
                 },
                 queue=transcript_to_claims_queue,
                 queue_arn=transcript_to_claims_queue_arn,
                 memory=2048,
                 repository=ecr_repositories["transcript-to-verified"],
+                gemini_secret=gemini_secret,  # Pass Gemini secret for transcript-to-verified
             )
 
     def _create_worker_service(
@@ -336,6 +344,7 @@ class WorkerStacks(Stack):
         queue_arn: str,
         memory: int,
         repository: ecr.IRepository,
+        gemini_secret: secretsmanager.ISecret = None,
     ):
         """Create a Lambda worker function triggered by SQS."""
         # Create Lambda execution role
@@ -396,14 +405,21 @@ class WorkerStacks(Stack):
         )
 
         # Grant Secrets Manager permissions
-        # Note: OpenAI secret uses from_secret_name_v2 which returns partial ARN without suffix
-        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for OpenAI secret
+        # Note: OpenAI and Gemini secrets use from_secret_name_v2 which returns partial ARN without suffix
+        # AWS Secrets Manager adds a random 6-character suffix, so we need wildcard for secrets
         openai_secret_arn_pattern = f"{openai_secret.secret_arn}-*"
+        secret_resources = [database_secret.secret_arn, openai_secret_arn_pattern]
+        
+        # Add Gemini secret if provided
+        if gemini_secret:
+            gemini_secret_arn_pattern = f"{gemini_secret.secret_arn}-*"
+            secret_resources.append(gemini_secret_arn_pattern)
+        
         lambda_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[database_secret.secret_arn, openai_secret_arn_pattern],
+                resources=secret_resources,
             )
         )
 
@@ -452,6 +468,10 @@ class WorkerStacks(Stack):
         # We'll need to fetch them at runtime, but we can pass the ARNs
         lambda_function.add_environment("DB_SECRET_ARN", database_secret.secret_arn)
         lambda_function.add_environment("OPENAI_SECRET_ARN", openai_secret.secret_arn)
+        
+        # Add Gemini secret ARN if provided
+        if gemini_secret:
+            lambda_function.add_environment("GEMINI_SECRET_ARN", gemini_secret.secret_arn)
 
         # Configure SQS event source mapping
         lambda_function.add_event_source(

@@ -54,6 +54,36 @@ async def initialize_secrets():
                     f"Failed to fetch OpenAI secret {openai_secret_arn}. "
                     f"Region: {aws_region}. Error type: {error_type}. Error: {str(e)}"
                 ) from e
+        
+        # Fetch Gemini secret
+        gemini_secret_arn = os.getenv('GEMINI_SECRET_ARN')
+        if gemini_secret_arn and not os.getenv('GEMINI_API_KEY'):
+            aws_region = os.getenv('AWS_REGION', 'us-east-1')
+            try:
+                gemini_secret = await secrets_client.get_secret_value(SecretId=gemini_secret_arn)
+                gemini_creds = json.loads(gemini_secret['SecretString'])
+                gemini_api_key = gemini_creds.get('GEMINI_API_KEY', '')
+                
+                # Validate that GEMINI_API_KEY exists and is not empty
+                if not gemini_api_key:
+                    raise ValueError(
+                        f"GEMINI_API_KEY field is missing or empty in secret {gemini_secret_arn}. "
+                        f"Region: {aws_region}. Secret keys available: {list(gemini_creds.keys())}"
+                    )
+                
+                os.environ['GEMINI_API_KEY'] = gemini_api_key
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Failed to parse Gemini secret JSON from {gemini_secret_arn}. "
+                    f"Region: {aws_region}. Error: {str(e)}"
+                ) from e
+            except Exception as e:
+                # Raise exception with detailed context instead of silently continuing
+                error_type = type(e).__name__
+                raise RuntimeError(
+                    f"Failed to fetch Gemini secret {gemini_secret_arn}. "
+                    f"Region: {aws_region}. Error type: {error_type}. Error: {str(e)}"
+                ) from e
                 
     secrets_initialized = True
 

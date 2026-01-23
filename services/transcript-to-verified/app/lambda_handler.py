@@ -27,6 +27,35 @@ def get_openai_api_key():
     return api_key
 
 
+def get_gemini_api_key():
+    """Get Gemini API key from environment variable (injected by Lambda from Secrets Manager)."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set")
+    return api_key
+
+
+def get_api_key(api_provider: str = None) -> str:
+    """
+    Get API key for the specified provider.
+    
+    Args:
+        api_provider: Provider name ("openai" or "gemini"). If None, reads from API_PROVIDER env var (default: "gemini")
+    
+    Returns:
+        API key string
+    """
+    if api_provider is None:
+        api_provider = os.getenv("API_PROVIDER", "gemini").lower()
+    
+    if api_provider == "openai":
+        return get_openai_api_key()
+    elif api_provider == "gemini":
+        return get_gemini_api_key()
+    else:
+        raise ValueError(f"Unknown API provider: {api_provider}. Must be 'openai' or 'gemini'")
+
+
 async def process_message(message_body: dict, session) -> bool:
     """Process a single message (async)."""
     job_id = message_body.get("job_id")
@@ -51,16 +80,20 @@ async def process_message(message_body: dict, session) -> bool:
         if not assets_bucket:
             raise ValueError("ASSETS_BUCKET must be set")
         
-        openai_api_key = get_openai_api_key()
-        if not openai_api_key:
-            raise ValueError("OpenAI API key not found")
+        # Determine API provider (default: gemini)
+        api_provider = os.getenv("API_PROVIDER", "gemini").lower()
+        job_logger.info("Using API provider", api_provider=api_provider)
+        
+        api_key = get_api_key(api_provider)
+        if not api_key:
+            raise ValueError(f"{api_provider.upper()} API key not found")
         
         # Set status to EXTRACTING before starting
         await update_job_status_async(session, job_id, JobStatus.EXTRACTING.value, None)
         
         # Extract and verify claims in one operation
         result = await extract_and_verify_claims(
-            job_id, transcript_s3_key, frames_s3_prefix, assets_bucket, openai_api_key, session
+            job_id, transcript_s3_key, frames_s3_prefix, assets_bucket, api_key, session, api_provider
         )
         
         title = result.get("title")

@@ -1,4 +1,6 @@
 """Prompt templates for combined claim extraction and verification."""
+import base64
+
 developer = """
 You are a FactChecking machine. You will be given a video transcript and frames from a social media video. These videos often try to convinece the viewer of a single thing by presenting evidence and not directly stating the claim.
 
@@ -48,16 +50,16 @@ Rules (general):
 - First Extract claims, then Verify claims.
 """
 
-def get_prompt(transcript: str, image_data_list: list) -> list:
+def get_prompt_openai(transcript: str, image_data_list: list) -> list:
     """
-    Creates a prompt for claim extraction and verification from video transcript and frames.
+    Creates a prompt for claim extraction and verification from video transcript and frames (OpenAI format).
     
     Args:
         transcript: The transcribed text from the video
         image_data_list: List of dictionaries with 'path' and 'data' keys for each image frame
     
     Returns:
-        List of message dictionaries for the API call
+        List of message dictionaries for the OpenAI API call
     """
     # Build image content list
     image_content = []
@@ -85,4 +87,46 @@ def get_prompt(transcript: str, image_data_list: list) -> list:
             "role": "user",
             "content": user_content
         }
+    ]
+
+
+def get_prompt_gemini(transcript: str, image_data_list: list):
+    """
+    Creates a prompt for claim extraction and verification from video transcript and frames (Gemini format).
+    
+    Args:
+        transcript: The transcribed text from the video
+        image_data_list: List of dictionaries with 'path' and 'data' keys for each image frame
+        (data is base64 encoded string)
+    
+    Returns:
+        List of Content objects for Gemini API call
+    """
+    from google.genai import types
+    
+    # Build parts list with text and images
+    parts = []
+    
+    # Add transcript text - use direct Part constructor
+    parts.append(types.Part(text=f"Transcript:\n{transcript}"))
+    
+    # Add images - convert base64 strings to bytes
+    for img_data in image_data_list:
+        # Decode base64 string to bytes
+        image_bytes = base64.b64decode(img_data['data'])
+        # Create Part from bytes with JPEG mime type - use direct constructor
+        parts.append(types.Part(
+            inline_data=types.Blob(
+                data=image_bytes,
+                mime_type="image/jpeg"
+            )
+        ))
+    
+    # Return list with single user Content object
+    # System instruction will be passed separately in the API call
+    return [
+        types.Content(
+            role="user",
+            parts=parts
+        )
     ]
