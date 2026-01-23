@@ -15,7 +15,8 @@ from typing import Optional, List
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse
 from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url
-from shared.database import init_db, get_db, JobStatus
+from app.migrations import run_migrations
+from shared.database import get_db, JobStatus
 from shared.logger import get_logger, bind_job_id
 
 # Initialize logger with resource name
@@ -77,10 +78,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database connection pool on startup."""
+    """Initialize database connection pool and run migrations on startup."""
     logger.info("Starting API service")
-    await init_db()
-    logger.info("Database connection pool initialized")
+    await run_migrations()
+    logger.info("Database migrations completed and connection pool initialized")
 
 
 @app.get("/jobs", response_model=List[JobResponse])

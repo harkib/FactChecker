@@ -21,6 +21,7 @@ class JobResponse(BaseModel):
     error_message: Optional[str] = None
     client_id: str
     title: Optional[str] = None
+    failed: Optional[bool] = False
 
     class Config:
         from_attributes = True

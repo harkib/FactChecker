@@ -19,6 +19,10 @@ COPY services/shared/ /app/shared/
 # Copy application code
 COPY services/api/app/ ./app/
 
+# Copy Alembic configuration and migrations
+COPY services/api/alembic.ini .
+COPY services/api/alembic/ ./alembic/
+
 # Expose port
 EXPOSE 8000
 

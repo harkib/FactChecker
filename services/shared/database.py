@@ -2,7 +2,7 @@
 import os
 from enum import Enum
 from typing import Optional, Dict, Any, AsyncGenerator, List
-from sqlalchemy import Column, String, Text, DateTime, select, desc
+from sqlalchemy import Column, String, Text, DateTime, Boolean, select, desc
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker, AsyncEngine
 from sqlalchemy.orm import declarative_base
@@ -42,6 +42,7 @@ class Job(Base):
     error_message = Column(Text, nullable=True)
     client_id = Column(String(255), nullable=False, index=True)
     title = Column(Text, nullable=True)
+    failed = Column(Boolean, nullable=True, default=False)
 
 
 # Module-level database configuration (lazy initialization)
@@ -251,6 +252,7 @@ async def get_job_async(session: AsyncSession, job_id: str) -> Optional[Dict[str
             "error_message": job.error_message,
             "client_id": job.client_id,
             "title": job.title,
+            "failed": job.failed,
         }
     return None
 
@@ -289,6 +291,7 @@ async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, lim
             "error_message": job.error_message,
             "client_id": job.client_id,
             "title": job.title,
+            "failed": job.failed,
         }
         for job in jobs
     ]
