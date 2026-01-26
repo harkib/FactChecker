@@ -54,6 +54,13 @@ def configure_logging(log_level: Optional[str] = None) -> None:
         logger_factory=structlog.stdlib.LoggerFactory(),  # Use stdlib factory for proper integration
         cache_logger_on_first_use=True,
     )
+    
+    # Explicitly reset the shared.logger logger to ensure it propagates correctly
+    # This is needed because Alembic's fileConfig may have modified it
+    shared_logger = logging.getLogger("shared.logger")
+    shared_logger.handlers = []  # Remove any handlers Alembic may have added
+    shared_logger.propagate = True  # Ensure it propagates to root logger
+    shared_logger.setLevel(logging_level)  # Set appropriate level
 
 
 def get_logger(resource: str) -> structlog.BoundLogger:
@@ -66,7 +73,7 @@ def get_logger(resource: str) -> structlog.BoundLogger:
     Returns:
         Bound logger with resource name in context
     """
-    return structlog.get_logger().bind(resource=resource)
+    return structlog.get_logger("shared.logger").bind(resource=resource)
 
 
 def bind_job_id(logger: structlog.BoundLogger, job_id: str) -> structlog.BoundLogger:
