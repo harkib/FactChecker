@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 
 // MARK: - Citation Model
 
@@ -71,43 +73,16 @@ extension String {
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: FactCheckViewModel
+    @State private var selectedVideoItem: PhotosPickerItem? = nil
+    @State private var selectedVideoData: Data? = nil
+    @State private var selectedFailedJobId: String? = nil
+    @State private var showURLInput: Bool = false
+    @State private var urlInputText: String = ""
+    @State private var showPhotoPicker: Bool = false
     
     var body: some View {
         NavigationView {
             List {
-                // URL Input Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Video URL")
-                        .font(.headline)
-                    
-                    TextField("Enter video URL", text: $viewModel.videoURL)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                    
-                    Button(action: {
-                        viewModel.submitJob()
-                    }) {
-                        HStack {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            Text(viewModel.isLoading ? "Processing..." : "Submit")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(viewModel.isLoading || viewModel.videoURL.isEmpty ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .disabled(viewModel.isLoading || viewModel.videoURL.isEmpty)
-                }
-                .padding(.vertical, 8)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                .listRowSeparator(.hidden)
-                
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
                     VStack(alignment: .leading, spacing: 8) {
@@ -162,6 +137,174 @@ struct ContentView: View {
                 await viewModel.refreshJobs()
             }
             .navigationTitle("Fact Checker")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: {
+                            showURLInput = true
+                        }) {
+                            Label("URL", systemImage: "link")
+                        }
+                        
+                        Button(action: {
+                            showPhotoPicker = true
+                        }) {
+                            Label("Upload", systemImage: "photo")
+                        }
+                        .disabled(viewModel.isUploading || viewModel.isLoading)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showURLInput) {
+                URLInputSheet(
+                    urlInputText: $urlInputText,
+                    viewModel: viewModel,
+                    isPresented: $showURLInput
+                )
+            }
+            .sheet(isPresented: $showPhotoPicker) {
+                PhotoPickerView(
+                    selectedVideoItem: $selectedVideoItem,
+                    isPresented: $showPhotoPicker
+                )
+            }
+            .onChange(of: selectedVideoItem) { newItem in
+                Task {
+                    if let newItem = newItem {
+                        if let data = try? await newItem.loadTransferable(type: Data.self) {
+                            selectedVideoData = data
+                            if let data = selectedVideoData {
+                                viewModel.uploadVideo(videoData: data)
+                                // Reset selection after upload
+                                selectedVideoItem = nil
+                                selectedVideoData = nil
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - URL Input Sheet
+
+struct URLInputSheet: View {
+    @Binding var urlInputText: String
+    @ObservedObject var viewModel: FactCheckViewModel
+    @Binding var isPresented: Bool
+    @FocusState private var isTextFieldFocused: Bool
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                TextField("Enter video URL", text: $urlInputText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .focused($isTextFieldFocused)
+                    .padding()
+                
+                Button(action: {
+                    guard !urlInputText.isEmpty else {
+                        return
+                    }
+                    
+                    // Validate URL format
+                    guard URL(string: urlInputText.trimmingCharacters(in: .whitespacesAndNewlines)) != nil else {
+                        viewModel.errorMessage = "Please enter a valid URL"
+                        return
+                    }
+                    
+                    // Set the URL and submit
+                    viewModel.videoURL = urlInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    viewModel.submitJob()
+                    
+                    // Clear input and dismiss
+                    urlInputText = ""
+                    isPresented = false
+                }) {
+                    HStack {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        }
+                        Text(viewModel.isLoading ? "Processing..." : "Submit")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(viewModel.isLoading || urlInputText.isEmpty ? Color.gray : Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .disabled(viewModel.isLoading || urlInputText.isEmpty || viewModel.isUploading)
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .navigationTitle("Enter Video URL")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        urlInputText = ""
+                        isPresented = false
+                    }
+                }
+            }
+            .onAppear {
+                isTextFieldFocused = true
+            }
+        }
+    }
+}
+
+// MARK: - Photo Picker View
+
+struct PhotoPickerView: View {
+    @Binding var selectedVideoItem: PhotosPickerItem?
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                PhotosPicker(
+                    selection: Binding(
+                        get: { selectedVideoItem },
+                        set: { newValue in
+                            selectedVideoItem = newValue
+                            if newValue != nil {
+                                isPresented = false
+                            }
+                        }
+                    ),
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    Label("Choose Video", systemImage: "photo.on.rectangle")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                }
+                .padding()
+                
+                Spacer()
+            }
+            .navigationTitle("Select Video")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+            }
         }
     }
 }
@@ -252,6 +395,38 @@ struct JobCardView: View {
                         if job.status == "completed", let verifiedClaims = job.verified_claims, let firstVerdict = verifiedClaims.verifications.first?.verdict {
                             VerdictBadge(verdict: firstVerdict)
                         }
+                    }
+                    
+                    // Upload button for failed jobs (status = downloading and failed = true)
+                    if job.status == "downloading" && (job.failed == true) {
+                        PhotosPicker(
+                            selection: Binding(
+                                get: { nil },
+                                set: { newItem in
+                                    if let newItem = newItem {
+                                        Task {
+                                            if let data = try? await newItem.loadTransferable(type: Data.self) {
+                                                viewModel.uploadVideoForFailedJob(jobId: job.id, videoData: data)
+                                            }
+                                        }
+                                    }
+                                }
+                            ),
+                            matching: .videos,
+                            photoLibrary: .shared()
+                        ) {
+                            HStack {
+                                Image(systemName: "arrow.up.circle.fill")
+                                Text("Upload Video")
+                            }
+                            .font(.caption)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .disabled(viewModel.isUploading || viewModel.isLoading)
                     }
                 }
                 

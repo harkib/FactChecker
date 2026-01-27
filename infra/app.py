@@ -19,19 +19,31 @@ cluster = vpc_stack.cluster
 # Create ECR stack (must be created before ECS services)
 ecr_stack = EcrStack(app, "EcrStack")
 
-# Create storage stack
-storage_stack = StorageStack(app, "StorageStack")
-video_bucket_name = storage_stack.video_bucket.bucket_name
-assets_bucket_name = storage_stack.assets_bucket.bucket_name
-
-# Create database stack
+# Create database stack (needed for storage stack S3 event handler)
 database_stack = DatabaseStack(app, "DatabaseStack", vpc=vpc)
 db_secret = database_stack.db_secret
 
-# Create queue stack
+# Create queue stack (needed for storage stack S3 event handler)
 queue_stack = QueueStack(app, "QueueStack")
-url_to_video_queue_url = queue_stack.url_to_video_queue.queue_url
 video_to_transcript_queue_url = queue_stack.video_to_transcript_queue.queue_url
+video_to_transcript_queue_arn = queue_stack.video_to_transcript_queue.queue_arn
+
+# Create storage stack with S3 event handler
+storage_stack = StorageStack(
+    app,
+    "StorageStack",
+    vpc=vpc_stack.vpc,
+    database_secret=database_stack.db_secret,
+    database_endpoint=database_stack.db_endpoint.hostname,
+    video_to_transcript_queue_url=video_to_transcript_queue_url,
+    video_to_transcript_queue_arn=video_to_transcript_queue_arn,
+    s3_event_repository=ecr_stack.repositories.get("s3-video-event"),
+)
+video_bucket_name = storage_stack.video_bucket.bucket_name
+assets_bucket_name = storage_stack.assets_bucket.bucket_name
+
+# Get remaining queue URLs
+url_to_video_queue_url = queue_stack.url_to_video_queue.queue_url
 transcript_to_claims_queue_url = queue_stack.transcript_to_claims_queue.queue_url
 claims_to_verified_queue_url = queue_stack.claims_to_verified_queue.queue_url
 

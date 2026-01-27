@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 import Combine
+import PhotosUI
+import UniformTypeIdentifiers
 
 @MainActor
 class FactCheckViewModel: ObservableObject {
@@ -18,6 +20,9 @@ class FactCheckViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isRefreshing: Bool = false
     @Published var errorMessage: String?
+    @Published var isUploading: Bool = false
+    @Published var uploadProgress: Double = 0.0
+    @Published var showVideoPicker: Bool = false
     
     private var jobsPollingTask: Task<Void, Never>?
     private let pollingInterval: TimeInterval = 5.0
@@ -148,6 +153,68 @@ class FactCheckViewModel: ObservableObject {
         return expandedVerificationIds.contains(verificationId)
     }
     
+    // MARK: - Video Upload
+    
+    func uploadVideo(videoData: Data) {
+        errorMessage = nil
+        isUploading = true
+        uploadProgress = 0.0
+        
+        Task {
+            do {
+                // Create upload job
+                let uploadResponse = try await apiService.createUploadJob()
+                let uploadURL = URL(string: uploadResponse.upload_url)!
+                
+                // Upload video to S3
+                try await apiService.uploadVideo(videoData: videoData, uploadURL: uploadURL)
+                
+                // Refresh jobs list to include the new job
+                await refreshJobs()
+                isUploading = false
+                uploadProgress = 1.0
+            } catch let error as APIError {
+                errorMessage = error.errorDescription ?? error.localizedDescription
+                isUploading = false
+                uploadProgress = 0.0
+            } catch {
+                errorMessage = "Failed to upload video: \(error.localizedDescription)"
+                isUploading = false
+                uploadProgress = 0.0
+            }
+        }
+    }
+    
+    func uploadVideoForFailedJob(jobId: String, videoData: Data) {
+        errorMessage = nil
+        isUploading = true
+        uploadProgress = 0.0
+        
+        Task {
+            do {
+                // Get upload URL for failed job
+                let uploadResponse = try await apiService.getUploadURL(jobId: jobId)
+                let uploadURL = URL(string: uploadResponse.upload_url)!
+                
+                // Upload video to S3
+                try await apiService.uploadVideo(videoData: videoData, uploadURL: uploadURL)
+                
+                // Refresh jobs list
+                await refreshJobs()
+                isUploading = false
+                uploadProgress = 1.0
+            } catch let error as APIError {
+                errorMessage = error.errorDescription ?? error.localizedDescription
+                isUploading = false
+                uploadProgress = 0.0
+            } catch {
+                errorMessage = "Failed to upload video: \(error.localizedDescription)"
+                isUploading = false
+                uploadProgress = 0.0
+            }
+        }
+    }
+    
     // MARK: - Share URL Handling
     
     func handleSharedURL(_ url: String) {
@@ -173,6 +240,8 @@ class FactCheckViewModel: ObservableObject {
         isLoading = false
         isRefreshing = false
         errorMessage = nil
+        isUploading = false
+        uploadProgress = 0.0
     }
     
     deinit {

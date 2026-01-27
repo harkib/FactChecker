@@ -140,19 +140,39 @@ async def create_job_async(session: AsyncSession, video_url: str, client_id: str
 async def update_job_status_async(session: AsyncSession, job_id: str, status: str, error_message: Optional[str] = None):
     """Update job status (async, requires session).
     
-    If status is FAILED, stores it as "failed_<previous_status>".
+    Note: Never sets status to 'failed'. Use update_job_failed_async to mark jobs as failed.
     """
     try:
         stmt = select(Job).where(Job.id == uuid.UUID(job_id))
         result = await session.execute(stmt)
         job = result.scalar_one_or_none()
         if job:
-            # If setting to FAILED, store as "failed_<previous_status>"
-            if status == JobStatus.FAILED.value:
-                previous_status = job.status
-                job.status = f"{JobStatus.FAILED.value}_{previous_status}"
-            else:
+            # Never set status to FAILED - use job.failed field instead
+            if status != JobStatus.FAILED.value:
                 job.status = status
+            if error_message:
+                job.error_message = error_message
+            await session.commit()
+    except Exception as e:
+        await session.rollback()
+        raise
+
+
+async def update_job_failed_async(session: AsyncSession, job_id: str, failed: bool, error_message: Optional[str] = None):
+    """Update job failed status (async, requires session).
+    
+    Args:
+        session: Database session
+        job_id: Job ID
+        failed: Boolean indicating if job has failed
+        error_message: Optional error message to store
+    """
+    try:
+        stmt = select(Job).where(Job.id == uuid.UUID(job_id))
+        result = await session.execute(stmt)
+        job = result.scalar_one_or_none()
+        if job:
+            job.failed = failed
             if error_message:
                 job.error_message = error_message
             await session.commit()
@@ -170,6 +190,7 @@ async def update_job_video_s3_key_async(session: AsyncSession, job_id: str, s3_k
         if job:
             job.video_s3_key = s3_key
             job.status = JobStatus.DOWNLOADED.value
+            job.failed = False  # Clear failed flag when video is successfully uploaded
             await session.commit()
     except Exception as e:
         await session.rollback()

@@ -150,6 +150,39 @@
     "aws:cdk:path": "EcrStack/transcripttoverifiedRepository/Resource"
    }
   },
+  "s3videoeventRepository03DE3A08": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "LifecyclePolicy": {
+     "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+    },
+    "RepositoryName": "factchecker/s3-video-event",
+    "RepositoryPolicyText": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "EcrStack/s3videoeventRepository/Resource"
+   }
+  },
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
@@ -372,6 +405,25 @@
   }
  },
  "Outputs": {
+  "ExportsOutputFnGetAtts3videoeventRepository03DE3A08Arn37536F87": {
+   "Value": {
+    "Fn::GetAtt": [
+     "s3videoeventRepository03DE3A08",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputFnGetAtts3videoeventRepository03DE3A08Arn37536F87"
+   }
+  },
+  "ExportsOutputRefs3videoeventRepository03DE3A080FCF7156": {
+   "Value": {
+    "Ref": "s3videoeventRepository03DE3A08"
+   },
+   "Export": {
+    "Name": "EcrStack:ExportsOutputRefs3videoeventRepository03DE3A080FCF7156"
+   }
+  },
   "ExportsOutputFnGetAttapiRepository1BACA399Arn4F847660": {
    "Value": {
     "Fn::GetAtt": [

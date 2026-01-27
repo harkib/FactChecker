@@ -11,6 +11,8 @@ from aws_cdk import (
     aws_lambda_event_sources as lambda_event_sources,
     aws_rds as rds,
     aws_sqs as sqs,
+    aws_s3 as s3,
+    aws_s3_notifications as s3n,
     aws_secretsmanager as secretsmanager,
     # aws_applicationautoscaling as appscaling,  # Unused - CloudWatch metrics disabled
     # aws_cloudwatch as cloudwatch,  # Unused - CloudWatch metrics disabled
@@ -184,6 +186,9 @@ class WorkerStacks(Stack):
                 repository=ecr_repositories["transcript-to-verified"],
                 gemini_secret=gemini_secret,  # Pass Gemini secret for transcript-to-verified
             )
+
+        # Note: S3 Video Event Handler Lambda is now created in StorageStack
+        # to avoid circular dependency issues
 
     def _create_worker_service(
         self,

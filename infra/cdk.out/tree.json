@@ -970,6 +970,52 @@
               "version": "2.140.0"
             }
           },
+          "s3videoeventRepository": {
+            "id": "s3videoeventRepository",
+            "path": "EcrStack/s3videoeventRepository",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "EcrStack/s3videoeventRepository/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECR::Repository",
+                  "aws:cdk:cloudformation:props": {
+                    "imageScanningConfiguration": {
+                      "scanOnPush": true
+                    },
+                    "lifecyclePolicy": {
+                      "lifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Expire untagged images after 7 days\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countNumber\":7,\"countUnit\":\"days\"},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Keep last 10 images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+                    },
+                    "repositoryName": "factchecker/s3-video-event",
+                    "repositoryPolicyText": {
+                      "Statement": [
+                        {
+                          "Action": [
+                            "ecr:BatchCheckLayerAvailability",
+                            "ecr:BatchGetImage",
+                            "ecr:GetDownloadUrlForLayer"
+                          ],
+                          "Effect": "Allow",
+                          "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecr.CfnRepository",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecr.Repository",
+              "version": "2.140.0"
+            }
+          },
           "CDKMetadata": {
             "id": "CDKMetadata",
             "path": "EcrStack/CDKMetadata",
@@ -1000,6 +1046,22 @@
             "id": "Exports",
             "path": "EcrStack/Exports",
             "children": {
+              "Output{\"Fn::GetAtt\":[\"s3videoeventRepository03DE3A08\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"s3videoeventRepository03DE3A08\",\"Arn\"]}",
+                "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"s3videoeventRepository03DE3A08\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              },
+              "Output{\"Ref\":\"s3videoeventRepository03DE3A08\"}": {
+                "id": "Output{\"Ref\":\"s3videoeventRepository03DE3A08\"}",
+                "path": "EcrStack/Exports/Output{\"Ref\":\"s3videoeventRepository03DE3A08\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              },
               "Output{\"Fn::GetAtt\":[\"apiRepository1BACA399\",\"Arn\"]}": {
                 "id": "Output{\"Fn::GetAtt\":[\"apiRepository1BACA399\",\"Arn\"]}",
                 "path": "EcrStack/Exports/Output{\"Fn::GetAtt\":[\"apiRepository1BACA399\",\"Arn\"]}",
@@ -1081,412 +1143,6 @@
           "CheckBootstrapVersion": {
             "id": "CheckBootstrapVersion",
             "path": "EcrStack/CheckBootstrapVersion",
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.CfnRule",
-              "version": "2.140.0"
-            }
-          }
-        },
-        "constructInfo": {
-          "fqn": "aws-cdk-lib.Stack",
-          "version": "2.140.0"
-        }
-      },
-      "StorageStack": {
-        "id": "StorageStack",
-        "path": "StorageStack",
-        "children": {
-          "VideoBucket": {
-            "id": "VideoBucket",
-            "path": "StorageStack/VideoBucket",
-            "children": {
-              "Resource": {
-                "id": "Resource",
-                "path": "StorageStack/VideoBucket/Resource",
-                "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
-                  "aws:cdk:cloudformation:props": {
-                    "bucketEncryption": {
-                      "serverSideEncryptionConfiguration": [
-                        {
-                          "serverSideEncryptionByDefault": {
-                            "sseAlgorithm": "AES256"
-                          }
-                        }
-                      ]
-                    },
-                    "bucketName": {
-                      "Fn::Join": [
-                        "",
-                        [
-                          "factchecker-videos-",
-                          {
-                            "Ref": "AWS::AccountId"
-                          },
-                          "-",
-                          {
-                            "Ref": "AWS::Region"
-                          }
-                        ]
-                      ]
-                    },
-                    "publicAccessBlockConfiguration": {
-                      "blockPublicAcls": true,
-                      "blockPublicPolicy": true,
-                      "ignorePublicAcls": true,
-                      "restrictPublicBuckets": true
-                    },
-                    "tags": [
-                      {
-                        "key": "aws-cdk:auto-delete-objects",
-                        "value": "true"
-                      }
-                    ]
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
-                  "version": "2.140.0"
-                }
-              },
-              "Policy": {
-                "id": "Policy",
-                "path": "StorageStack/VideoBucket/Policy",
-                "children": {
-                  "Resource": {
-                    "id": "Resource",
-                    "path": "StorageStack/VideoBucket/Policy/Resource",
-                    "attributes": {
-                      "aws:cdk:cloudformation:type": "AWS::S3::BucketPolicy",
-                      "aws:cdk:cloudformation:props": {
-                        "bucket": {
-                          "Ref": "VideoBucket6ED8E1AF"
-                        },
-                        "policyDocument": {
-                          "Statement": [
-                            {
-                              "Action": [
-                                "s3:DeleteObject*",
-                                "s3:GetBucket*",
-                                "s3:List*",
-                                "s3:PutBucketPolicy"
-                              ],
-                              "Effect": "Allow",
-                              "Principal": {
-                                "AWS": {
-                                  "Fn::GetAtt": [
-                                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
-                                    "Arn"
-                                  ]
-                                }
-                              },
-                              "Resource": [
-                                {
-                                  "Fn::GetAtt": [
-                                    "VideoBucket6ED8E1AF",
-                                    "Arn"
-                                  ]
-                                },
-                                {
-                                  "Fn::Join": [
-                                    "",
-                                    [
-                                      {
-                                        "Fn::GetAtt": [
-                                          "VideoBucket6ED8E1AF",
-                                          "Arn"
-                                        ]
-                                      },
-                                      "/*"
-                                    ]
-                                  ]
-                                }
-                              ]
-                            }
-                          ],
-                          "Version": "2012-10-17"
-                        }
-                      }
-                    },
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_s3.CfnBucketPolicy",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_s3.BucketPolicy",
-                  "version": "2.140.0"
-                }
-              },
-              "AutoDeleteObjectsCustomResource": {
-                "id": "AutoDeleteObjectsCustomResource",
-                "path": "StorageStack/VideoBucket/AutoDeleteObjectsCustomResource",
-                "children": {
-                  "Default": {
-                    "id": "Default",
-                    "path": "StorageStack/VideoBucket/AutoDeleteObjectsCustomResource/Default",
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.CfnResource",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CustomResource",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_s3.Bucket",
-              "version": "2.140.0"
-            }
-          },
-          "Custom::S3AutoDeleteObjectsCustomResourceProvider": {
-            "id": "Custom::S3AutoDeleteObjectsCustomResourceProvider",
-            "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider",
-            "children": {
-              "Staging": {
-                "id": "Staging",
-                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Staging",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.AssetStaging",
-                  "version": "2.140.0"
-                }
-              },
-              "Role": {
-                "id": "Role",
-                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnResource",
-                  "version": "2.140.0"
-                }
-              },
-              "Handler": {
-                "id": "Handler",
-                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnResource",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.CustomResourceProviderBase",
-              "version": "2.140.0"
-            }
-          },
-          "AssetsBucket": {
-            "id": "AssetsBucket",
-            "path": "StorageStack/AssetsBucket",
-            "children": {
-              "Resource": {
-                "id": "Resource",
-                "path": "StorageStack/AssetsBucket/Resource",
-                "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
-                  "aws:cdk:cloudformation:props": {
-                    "bucketEncryption": {
-                      "serverSideEncryptionConfiguration": [
-                        {
-                          "serverSideEncryptionByDefault": {
-                            "sseAlgorithm": "AES256"
-                          }
-                        }
-                      ]
-                    },
-                    "bucketName": {
-                      "Fn::Join": [
-                        "",
-                        [
-                          "factchecker-assets-",
-                          {
-                            "Ref": "AWS::AccountId"
-                          },
-                          "-",
-                          {
-                            "Ref": "AWS::Region"
-                          }
-                        ]
-                      ]
-                    },
-                    "publicAccessBlockConfiguration": {
-                      "blockPublicAcls": true,
-                      "blockPublicPolicy": true,
-                      "ignorePublicAcls": true,
-                      "restrictPublicBuckets": true
-                    },
-                    "tags": [
-                      {
-                        "key": "aws-cdk:auto-delete-objects",
-                        "value": "true"
-                      }
-                    ]
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
-                  "version": "2.140.0"
-                }
-              },
-              "Policy": {
-                "id": "Policy",
-                "path": "StorageStack/AssetsBucket/Policy",
-                "children": {
-                  "Resource": {
-                    "id": "Resource",
-                    "path": "StorageStack/AssetsBucket/Policy/Resource",
-                    "attributes": {
-                      "aws:cdk:cloudformation:type": "AWS::S3::BucketPolicy",
-                      "aws:cdk:cloudformation:props": {
-                        "bucket": {
-                          "Ref": "AssetsBucket5CB76180"
-                        },
-                        "policyDocument": {
-                          "Statement": [
-                            {
-                              "Action": [
-                                "s3:DeleteObject*",
-                                "s3:GetBucket*",
-                                "s3:List*",
-                                "s3:PutBucketPolicy"
-                              ],
-                              "Effect": "Allow",
-                              "Principal": {
-                                "AWS": {
-                                  "Fn::GetAtt": [
-                                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
-                                    "Arn"
-                                  ]
-                                }
-                              },
-                              "Resource": [
-                                {
-                                  "Fn::GetAtt": [
-                                    "AssetsBucket5CB76180",
-                                    "Arn"
-                                  ]
-                                },
-                                {
-                                  "Fn::Join": [
-                                    "",
-                                    [
-                                      {
-                                        "Fn::GetAtt": [
-                                          "AssetsBucket5CB76180",
-                                          "Arn"
-                                        ]
-                                      },
-                                      "/*"
-                                    ]
-                                  ]
-                                }
-                              ]
-                            }
-                          ],
-                          "Version": "2012-10-17"
-                        }
-                      }
-                    },
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.aws_s3.CfnBucketPolicy",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_s3.BucketPolicy",
-                  "version": "2.140.0"
-                }
-              },
-              "AutoDeleteObjectsCustomResource": {
-                "id": "AutoDeleteObjectsCustomResource",
-                "path": "StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource",
-                "children": {
-                  "Default": {
-                    "id": "Default",
-                    "path": "StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource/Default",
-                    "constructInfo": {
-                      "fqn": "aws-cdk-lib.CfnResource",
-                      "version": "2.140.0"
-                    }
-                  }
-                },
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CustomResource",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_s3.Bucket",
-              "version": "2.140.0"
-            }
-          },
-          "CDKMetadata": {
-            "id": "CDKMetadata",
-            "path": "StorageStack/CDKMetadata",
-            "children": {
-              "Default": {
-                "id": "Default",
-                "path": "StorageStack/CDKMetadata/Default",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnResource",
-                  "version": "2.140.0"
-                }
-              },
-              "Condition": {
-                "id": "Condition",
-                "path": "StorageStack/CDKMetadata/Condition",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnCondition",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "constructs.Construct",
-              "version": "10.4.4"
-            }
-          },
-          "Exports": {
-            "id": "Exports",
-            "path": "StorageStack/Exports",
-            "children": {
-              "Output{\"Ref\":\"AssetsBucket5CB76180\"}": {
-                "id": "Output{\"Ref\":\"AssetsBucket5CB76180\"}",
-                "path": "StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": {
-                "id": "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
-                "path": "StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              }
-            },
-            "constructInfo": {
-              "fqn": "constructs.Construct",
-              "version": "10.4.4"
-            }
-          },
-          "BootstrapVersion": {
-            "id": "BootstrapVersion",
-            "path": "StorageStack/BootstrapVersion",
-            "constructInfo": {
-              "fqn": "aws-cdk-lib.CfnParameter",
-              "version": "2.140.0"
-            }
-          },
-          "CheckBootstrapVersion": {
-            "id": "CheckBootstrapVersion",
-            "path": "StorageStack/CheckBootstrapVersion",
             "constructInfo": {
               "fqn": "aws-cdk-lib.CfnRule",
               "version": "2.140.0"
@@ -2001,17 +1657,9 @@
             "id": "Exports",
             "path": "QueueStack/Exports",
             "children": {
-              "Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}": {
-                "id": "Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}",
-                "path": "QueueStack/Exports/Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.CfnOutput",
-                  "version": "2.140.0"
-                }
-              },
-              "Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}",
-                "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}",
+              "Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}",
+                "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -2025,9 +1673,17 @@
                   "version": "2.140.0"
                 }
               },
-              "Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}": {
-                "id": "Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}",
-                "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}",
+              "Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}": {
+                "id": "Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}",
+                "path": "QueueStack/Exports/Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}",
+                "path": "QueueStack/Exports/Output{\"Fn::GetAtt\":[\"UrlToVideoQueue9766BE39\",\"Arn\"]}",
                 "constructInfo": {
                   "fqn": "aws-cdk-lib.CfnOutput",
                   "version": "2.140.0"
@@ -2066,6 +1722,887 @@
           "CheckBootstrapVersion": {
             "id": "CheckBootstrapVersion",
             "path": "QueueStack/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.140.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.140.0"
+        }
+      },
+      "StorageStack": {
+        "id": "StorageStack",
+        "path": "StorageStack",
+        "children": {
+          "VideoBucket": {
+            "id": "VideoBucket",
+            "path": "StorageStack/VideoBucket",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/VideoBucket/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "bucketEncryption": {
+                      "serverSideEncryptionConfiguration": [
+                        {
+                          "serverSideEncryptionByDefault": {
+                            "sseAlgorithm": "AES256"
+                          }
+                        }
+                      ]
+                    },
+                    "bucketName": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "factchecker-videos-",
+                          {
+                            "Ref": "AWS::AccountId"
+                          },
+                          "-",
+                          {
+                            "Ref": "AWS::Region"
+                          }
+                        ]
+                      ]
+                    },
+                    "publicAccessBlockConfiguration": {
+                      "blockPublicAcls": true,
+                      "blockPublicPolicy": true,
+                      "ignorePublicAcls": true,
+                      "restrictPublicBuckets": true
+                    },
+                    "tags": [
+                      {
+                        "key": "aws-cdk:auto-delete-objects",
+                        "value": "true"
+                      }
+                    ]
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.140.0"
+                }
+              },
+              "Policy": {
+                "id": "Policy",
+                "path": "StorageStack/VideoBucket/Policy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "StorageStack/VideoBucket/Policy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::S3::BucketPolicy",
+                      "aws:cdk:cloudformation:props": {
+                        "bucket": {
+                          "Ref": "VideoBucket6ED8E1AF"
+                        },
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "s3:DeleteObject*",
+                                "s3:GetBucket*",
+                                "s3:List*",
+                                "s3:PutBucketPolicy"
+                              ],
+                              "Effect": "Allow",
+                              "Principal": {
+                                "AWS": {
+                                  "Fn::GetAtt": [
+                                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                                    "Arn"
+                                  ]
+                                }
+                              },
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "VideoBucket6ED8E1AF",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::GetAtt": [
+                                          "VideoBucket6ED8E1AF",
+                                          "Arn"
+                                        ]
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_s3.CfnBucketPolicy",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.BucketPolicy",
+                  "version": "2.140.0"
+                }
+              },
+              "AutoDeleteObjectsCustomResource": {
+                "id": "AutoDeleteObjectsCustomResource",
+                "path": "StorageStack/VideoBucket/AutoDeleteObjectsCustomResource",
+                "children": {
+                  "Default": {
+                    "id": "Default",
+                    "path": "StorageStack/VideoBucket/AutoDeleteObjectsCustomResource/Default",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.CfnResource",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CustomResource",
+                  "version": "2.140.0"
+                }
+              },
+              "Notifications": {
+                "id": "Notifications",
+                "path": "StorageStack/VideoBucket/Notifications",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "StorageStack/VideoBucket/Notifications/Resource",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.CfnResource",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "constructs.Construct",
+                  "version": "10.4.4"
+                }
+              },
+              "AllowBucketNotificationsToStorageStackS3VideoEventHandlerLambda13334BAF": {
+                "id": "AllowBucketNotificationsToStorageStackS3VideoEventHandlerLambda13334BAF",
+                "path": "StorageStack/VideoBucket/AllowBucketNotificationsToStorageStackS3VideoEventHandlerLambda13334BAF",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                  "aws:cdk:cloudformation:props": {
+                    "action": "lambda:InvokeFunction",
+                    "functionName": {
+                      "Fn::GetAtt": [
+                        "S3VideoEventHandlerLambdaD7046E48",
+                        "Arn"
+                      ]
+                    },
+                    "principal": "s3.amazonaws.com",
+                    "sourceAccount": {
+                      "Ref": "AWS::AccountId"
+                    },
+                    "sourceArn": {
+                      "Fn::GetAtt": [
+                        "VideoBucket6ED8E1AF",
+                        "Arn"
+                      ]
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.140.0"
+            }
+          },
+          "Custom::S3AutoDeleteObjectsCustomResourceProvider": {
+            "id": "Custom::S3AutoDeleteObjectsCustomResourceProvider",
+            "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider",
+            "children": {
+              "Staging": {
+                "id": "Staging",
+                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Staging",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.AssetStaging",
+                  "version": "2.140.0"
+                }
+              },
+              "Role": {
+                "id": "Role",
+                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.140.0"
+                }
+              },
+              "Handler": {
+                "id": "Handler",
+                "path": "StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CustomResourceProviderBase",
+              "version": "2.140.0"
+            }
+          },
+          "AssetsBucket": {
+            "id": "AssetsBucket",
+            "path": "StorageStack/AssetsBucket",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/AssetsBucket/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "bucketEncryption": {
+                      "serverSideEncryptionConfiguration": [
+                        {
+                          "serverSideEncryptionByDefault": {
+                            "sseAlgorithm": "AES256"
+                          }
+                        }
+                      ]
+                    },
+                    "bucketName": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "factchecker-assets-",
+                          {
+                            "Ref": "AWS::AccountId"
+                          },
+                          "-",
+                          {
+                            "Ref": "AWS::Region"
+                          }
+                        ]
+                      ]
+                    },
+                    "publicAccessBlockConfiguration": {
+                      "blockPublicAcls": true,
+                      "blockPublicPolicy": true,
+                      "ignorePublicAcls": true,
+                      "restrictPublicBuckets": true
+                    },
+                    "tags": [
+                      {
+                        "key": "aws-cdk:auto-delete-objects",
+                        "value": "true"
+                      }
+                    ]
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.140.0"
+                }
+              },
+              "Policy": {
+                "id": "Policy",
+                "path": "StorageStack/AssetsBucket/Policy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "StorageStack/AssetsBucket/Policy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::S3::BucketPolicy",
+                      "aws:cdk:cloudformation:props": {
+                        "bucket": {
+                          "Ref": "AssetsBucket5CB76180"
+                        },
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "s3:DeleteObject*",
+                                "s3:GetBucket*",
+                                "s3:List*",
+                                "s3:PutBucketPolicy"
+                              ],
+                              "Effect": "Allow",
+                              "Principal": {
+                                "AWS": {
+                                  "Fn::GetAtt": [
+                                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                                    "Arn"
+                                  ]
+                                }
+                              },
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "AssetsBucket5CB76180",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::GetAtt": [
+                                          "AssetsBucket5CB76180",
+                                          "Arn"
+                                        ]
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_s3.CfnBucketPolicy",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.BucketPolicy",
+                  "version": "2.140.0"
+                }
+              },
+              "AutoDeleteObjectsCustomResource": {
+                "id": "AutoDeleteObjectsCustomResource",
+                "path": "StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource",
+                "children": {
+                  "Default": {
+                    "id": "Default",
+                    "path": "StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource/Default",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.CfnResource",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CustomResource",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.140.0"
+            }
+          },
+          "S3VideoEventHandlerLambdaRole": {
+            "id": "S3VideoEventHandlerLambdaRole",
+            "path": "StorageStack/S3VideoEventHandlerLambdaRole",
+            "children": {
+              "ImportS3VideoEventHandlerLambdaRole": {
+                "id": "ImportS3VideoEventHandlerLambdaRole",
+                "path": "StorageStack/S3VideoEventHandlerLambdaRole/ImportS3VideoEventHandlerLambdaRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.140.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/S3VideoEventHandlerLambdaRole/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:props": {
+                    "assumeRolePolicyDocument": {
+                      "Statement": [
+                        {
+                          "Action": "sts:AssumeRole",
+                          "Effect": "Allow",
+                          "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    },
+                    "managedPolicyArns": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "version": "2.140.0"
+                }
+              },
+              "DefaultPolicy": {
+                "id": "DefaultPolicy",
+                "path": "StorageStack/S3VideoEventHandlerLambdaRole/DefaultPolicy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "StorageStack/S3VideoEventHandlerLambdaRole/DefaultPolicy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                      "aws:cdk:cloudformation:props": {
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "s3:GetObject",
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::Join": [
+                                  "",
+                                  [
+                                    {
+                                      "Fn::GetAtt": [
+                                        "VideoBucket6ED8E1AF",
+                                        "Arn"
+                                      ]
+                                    },
+                                    "/*"
+                                  ]
+                                ]
+                              }
+                            },
+                            {
+                              "Action": "sqs:SendMessage",
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::ImportValue": "QueueStack:ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
+                              }
+                            },
+                            {
+                              "Action": "rds-db:connect",
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::Join": [
+                                  "",
+                                  [
+                                    "arn:aws:rds-db:",
+                                    {
+                                      "Ref": "AWS::Region"
+                                    },
+                                    ":",
+                                    {
+                                      "Ref": "AWS::AccountId"
+                                    },
+                                    ":dbuser:*/postgres"
+                                  ]
+                                ]
+                              }
+                            },
+                            {
+                              "Action": "secretsmanager:GetSecretValue",
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+                                      },
+                                      "-*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "policyName": "S3VideoEventHandlerLambdaRoleDefaultPolicy790DFF7E",
+                        "roles": [
+                          {
+                            "Ref": "S3VideoEventHandlerLambdaRoleE769571E"
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Policy",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "version": "2.140.0"
+            }
+          },
+          "S3VideoEventHandlerLambdaSecurityGroup": {
+            "id": "S3VideoEventHandlerLambdaSecurityGroup",
+            "path": "StorageStack/S3VideoEventHandlerLambdaSecurityGroup",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/S3VideoEventHandlerLambdaSecurityGroup/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
+                  "aws:cdk:cloudformation:props": {
+                    "groupDescription": "Security group for S3 Video Event Handler Lambda",
+                    "securityGroupEgress": [
+                      {
+                        "cidrIp": "0.0.0.0/0",
+                        "description": "Allow all outbound traffic by default",
+                        "ipProtocol": "-1"
+                      }
+                    ],
+                    "vpcId": {
+                      "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcC99A05149AE931D6"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ec2.CfnSecurityGroup",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ec2.SecurityGroup",
+              "version": "2.140.0"
+            }
+          },
+          "S3VideoEventHandlerLambda": {
+            "id": "S3VideoEventHandlerLambda",
+            "path": "StorageStack/S3VideoEventHandlerLambda",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/S3VideoEventHandlerLambda/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+                  "aws:cdk:cloudformation:props": {
+                    "code": {
+                      "imageUri": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            {
+                              "Fn::Select": [
+                                4,
+                                {
+                                  "Fn::Split": [
+                                    ":",
+                                    {
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtts3videoeventRepository03DE3A08Arn37536F87"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            ".dkr.ecr.",
+                            {
+                              "Fn::Select": [
+                                3,
+                                {
+                                  "Fn::Split": [
+                                    ":",
+                                    {
+                                      "Fn::ImportValue": "EcrStack:ExportsOutputFnGetAtts3videoeventRepository03DE3A08Arn37536F87"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            ".",
+                            {
+                              "Ref": "AWS::URLSuffix"
+                            },
+                            "/",
+                            {
+                              "Fn::ImportValue": "EcrStack:ExportsOutputRefs3videoeventRepository03DE3A080FCF7156"
+                            },
+                            ":latest"
+                          ]
+                        ]
+                      }
+                    },
+                    "environment": {
+                      "variables": {
+                        "VIDEO_TO_TRANSCRIPT_QUEUE_URL": {
+                          "Fn::ImportValue": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+                        },
+                        "DB_HOST": {
+                          "Fn::ImportValue": "DatabaseStack:ExportsOutputFnGetAttFactCheckerDatabase26B64BEEEndpointAddressF5737B3D"
+                        },
+                        "DB_PORT": "5432",
+                        "DB_NAME": "factchecker",
+                        "DB_SECRET_ARN": {
+                          "Fn::ImportValue": "DatabaseStack:ExportsOutputRefDatabaseSecret86DBB7B353068790"
+                        }
+                      }
+                    },
+                    "functionName": "factchecker-s3-video-event",
+                    "memorySize": 512,
+                    "packageType": "Image",
+                    "role": {
+                      "Fn::GetAtt": [
+                        "S3VideoEventHandlerLambdaRoleE769571E",
+                        "Arn"
+                      ]
+                    },
+                    "timeout": 300,
+                    "vpcConfig": {
+                      "subnetIds": [
+                        {
+                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet1Subnet3D6204A251DFA624"
+                        },
+                        {
+                          "Fn::ImportValue": "VpcStack:ExportsOutputRefFactCheckerVpcPrivateSubnet2Subnet081E41A6B36DE5BB"
+                        }
+                      ],
+                      "securityGroupIds": [
+                        {
+                          "Fn::GetAtt": [
+                            "S3VideoEventHandlerLambdaSecurityGroupF6C6F1AF",
+                            "GroupId"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_lambda.DockerImageFunction",
+              "version": "2.140.0"
+            }
+          },
+          "BucketNotificationsHandler050a0587b7544547bf325f094a3db834": {
+            "id": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834",
+            "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834",
+            "children": {
+              "Role": {
+                "id": "Role",
+                "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role",
+                "children": {
+                  "ImportRole": {
+                    "id": "ImportRole",
+                    "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/ImportRole",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.Resource",
+                      "version": "2.140.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                      "aws:cdk:cloudformation:props": {
+                        "assumeRolePolicyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "sts:AssumeRole",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "managedPolicyArns": [
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "arn:",
+                                {
+                                  "Ref": "AWS::Partition"
+                                },
+                                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                      "version": "2.140.0"
+                    }
+                  },
+                  "DefaultPolicy": {
+                    "id": "DefaultPolicy",
+                    "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/DefaultPolicy",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/DefaultPolicy/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                          "aws:cdk:cloudformation:props": {
+                            "policyDocument": {
+                              "Statement": [
+                                {
+                                  "Action": "s3:PutBucketNotification",
+                                  "Effect": "Allow",
+                                  "Resource": "*"
+                                }
+                              ],
+                              "Version": "2012-10-17"
+                            },
+                            "policyName": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36",
+                            "roles": [
+                              {
+                                "Ref": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC"
+                              }
+                            ]
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                          "version": "2.140.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.Policy",
+                      "version": "2.140.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Role",
+                  "version": "2.140.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Resource",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.4.4"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "StorageStack/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "StorageStack/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.140.0"
+                }
+              },
+              "Condition": {
+                "id": "Condition",
+                "path": "StorageStack/CDKMetadata/Condition",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnCondition",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.4.4"
+            }
+          },
+          "Exports": {
+            "id": "Exports",
+            "path": "StorageStack/Exports",
+            "children": {
+              "Output{\"Ref\":\"AssetsBucket5CB76180\"}": {
+                "id": "Output{\"Ref\":\"AssetsBucket5CB76180\"}",
+                "path": "StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              },
+              "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": {
+                "id": "Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
+                "path": "StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.140.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.4.4"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "StorageStack/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.140.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "StorageStack/CheckBootstrapVersion",
             "constructInfo": {
               "fqn": "aws-cdk-lib.CfnRule",
               "version": "2.140.0"
@@ -2188,7 +2725,10 @@
                               ]
                             },
                             {
-                              "Action": "s3:GetObject",
+                              "Action": [
+                                "s3:GetObject",
+                                "s3:PutObject"
+                              ],
                               "Effect": "Allow",
                               "Resource": [
                                 {

@@ -322,6 +322,25 @@
   }
  },
  "Outputs": {
+  "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E": {
+   "Value": {
+    "Fn::GetAtt": [
+     "VideoToTranscriptQueueEE07C8F2",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "QueueStack:ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
+   }
+  },
+  "ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A": {
+   "Value": {
+    "Ref": "VideoToTranscriptQueueEE07C8F2"
+   },
+   "Export": {
+    "Name": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+   }
+  },
   "ExportsOutputRefUrlToVideoQueue9766BE39B6F3CF36": {
    "Value": {
     "Ref": "UrlToVideoQueue9766BE39"
@@ -339,25 +358,6 @@
    },
    "Export": {
     "Name": "QueueStack:ExportsOutputFnGetAttUrlToVideoQueue9766BE39Arn9D2DB0FD"
-   }
-  },
-  "ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A": {
-   "Value": {
-    "Ref": "VideoToTranscriptQueueEE07C8F2"
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
-   }
-  },
-  "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E": {
-   "Value": {
-    "Fn::GetAtt": [
-     "VideoToTranscriptQueueEE07C8F2",
-     "Arn"
-    ]
-   },
-   "Export": {
-    "Name": "QueueStack:ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
    }
   },
   "ExportsOutputRefTranscriptToClaimsQueueDB98A91C8F9515B1": {

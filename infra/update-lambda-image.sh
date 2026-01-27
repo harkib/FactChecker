@@ -13,6 +13,7 @@ SERVICES=(
     # "transcript-to-claims"
     # "claims-to-verified"
     "transcript-to-verified"
+    "s3-video-event"
 )
 
 # Get AWS account ID
@@ -67,4 +68,3 @@ for service_name in "${SERVICES[@]}"; do
         --output table
     echo ""
 done
-

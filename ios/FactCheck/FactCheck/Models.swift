@@ -34,6 +34,7 @@ struct JobResponse: Codable {
     let error_message: String?
     let client_id: String
     let title: String?
+    let failed: Bool?
 }
 
 // MARK: - Verified Claims Structure
@@ -117,3 +118,15 @@ struct ClaimResult: Codable {
     let rationale: String
 }
 
+// MARK: - Upload Models
+
+struct CreateUploadJobResponse: Codable {
+    let job_id: String
+    let upload_url: String
+    let expires_in: Int
+}
+
+struct GetUploadUrlResponse: Codable {
+    let upload_url: String
+    let expires_in: Int
+}

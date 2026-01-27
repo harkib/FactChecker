@@ -31,3 +31,14 @@ class CreateJobResponse(BaseModel):
     job_id: str
     status: str
 
+
+class CreateUploadJobResponse(BaseModel):
+    job_id: str
+    upload_url: str
+    expires_in: int
+
+
+class GetUploadUrlResponse(BaseModel):
+    upload_url: str
+    expires_in: int
+

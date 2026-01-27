@@ -15,7 +15,7 @@ class EcrStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # List of service names
-        services = ["api", "url-to-video", "video-to-transcript", "transcript-to-claims", "claims-to-verified", "transcript-to-verified"]
+        services = ["api", "url-to-video", "video-to-transcript", "transcript-to-claims", "claims-to-verified", "transcript-to-verified", "s3-video-event"]
         
         # Dictionary to store repositories
         self.repositories = {}
@@ -53,4 +53,5 @@ class EcrStack(Stack):
         self.transcript_to_claims_repo = self.repositories["transcript-to-claims"]
         self.claims_to_verified_repo = self.repositories["claims-to-verified"]
         self.transcript_to_verified_repo = self.repositories["transcript-to-verified"]
+        self.s3_video_event_repo = self.repositories["s3-video-event"]
 

@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import UniformTypeIdentifiers
 
 enum APIError: LocalizedError {
     case invalidURL
@@ -194,6 +195,106 @@ class APIService {
             throw error
         } catch let error as DecodingError {
             throw APIError.decodingError(error)
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+    
+    // MARK: - Create Upload Job
+    
+    func createUploadJob() async throws -> CreateUploadJobResponse {
+        guard let url = URL(string: "\(baseURL)/upload-jobs") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAPIKey(to: &request)
+        addClientID(to: &request)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMessage = extractErrorMessage(from: data)
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            }
+            
+            let decoder = JSONDecoder()
+            let uploadResponse = try decoder.decode(CreateUploadJobResponse.self, from: data)
+            return uploadResponse
+            
+        } catch let error as APIError {
+            throw error
+        } catch let error as DecodingError {
+            throw APIError.decodingError(error)
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+    
+    // MARK: - Get Upload URL
+    
+    func getUploadURL(jobId: String) async throws -> GetUploadUrlResponse {
+        guard let url = URL(string: "\(baseURL)/jobs/\(jobId)/upload-url") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        addAPIKey(to: &request)
+        addClientID(to: &request)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMessage = extractErrorMessage(from: data)
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            }
+            
+            let decoder = JSONDecoder()
+            let uploadResponse = try decoder.decode(GetUploadUrlResponse.self, from: data)
+            return uploadResponse
+            
+        } catch let error as APIError {
+            throw error
+        } catch let error as DecodingError {
+            throw APIError.decodingError(error)
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+    
+    // MARK: - Upload Video
+    
+    func uploadVideo(videoData: Data, uploadURL: URL) async throws {
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "PUT"
+        request.setValue("video/mp4", forHTTPHeaderField: "Content-Type")
+        request.httpBody = videoData
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: "Failed to upload video")
+            }
+        } catch let error as APIError {
+            throw error
         } catch {
             throw APIError.networkError(error)
         }

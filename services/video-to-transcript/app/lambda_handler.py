@@ -13,7 +13,7 @@ if '/app' not in sys.path:
 from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
 from shared.sqs_client import send_message
-from shared.database import get_sessionmaker, update_job_status_async, JobStatus
+from shared.database import get_sessionmaker, update_job_status_async, update_job_failed_async, JobStatus
 from app.processor import process_video
 
 # Initialize logger with resource name
@@ -65,7 +65,8 @@ async def process_message(message_body: dict, session, next_queue_url: str) -> b
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))
-        await update_job_status_async(session, job_id, JobStatus.FAILED.value, str(e))
+        # Mark job as failed
+        await update_job_failed_async(session, job_id, True, str(e))
         return False
 
 

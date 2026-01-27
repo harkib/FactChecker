@@ -246,7 +246,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/610fc081897e631be8d90d8789cbc6cfcdc0710fbdf81a54c57809b4d660c5da.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/2e0acd638322eaf70286d748dd5fa48312163136806251ba0cd8fab18b499319.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -298,6 +298,12 @@
             "data": "transcripttoverifiedRepository3F93B13C"
           }
         ],
+        "/EcrStack/s3videoeventRepository/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "s3videoeventRepository03DE3A08"
+          }
+        ],
         "/EcrStack/CDKMetadata/Default": [
           {
             "type": "aws:cdk:logicalId",
@@ -308,6 +314,18 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"s3videoeventRepository03DE3A08\",\"Arn\"]}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputFnGetAtts3videoeventRepository03DE3A08Arn37536F87"
+          }
+        ],
+        "/EcrStack/Exports/Output{\"Ref\":\"s3videoeventRepository03DE3A08\"}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputRefs3videoeventRepository03DE3A080FCF7156"
           }
         ],
         "/EcrStack/Exports/Output{\"Fn::GetAtt\":[\"apiRepository1BACA399\",\"Arn\"]}": [
@@ -372,126 +390,6 @@
         ]
       },
       "displayName": "EcrStack"
-    },
-    "StorageStack.assets": {
-      "type": "cdk:asset-manifest",
-      "properties": {
-        "file": "StorageStack.assets.json",
-        "requiresBootstrapStackVersion": 6,
-        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
-      }
-    },
-    "StorageStack": {
-      "type": "aws:cloudformation:stack",
-      "environment": "aws://unknown-account/unknown-region",
-      "properties": {
-        "templateFile": "StorageStack.template.json",
-        "terminationProtection": false,
-        "validateOnSynth": false,
-        "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
-        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c5227660ace26d7ebe4ec52b6f60f926f7f333c1462a8388de7d519896fed072.json",
-        "requiresBootstrapStackVersion": 6,
-        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
-        "additionalDependencies": [
-          "StorageStack.assets"
-        ],
-        "lookupRole": {
-          "arn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-lookup-role-${AWS::AccountId}-${AWS::Region}",
-          "requiresBootstrapStackVersion": 8,
-          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
-        }
-      },
-      "dependencies": [
-        "StorageStack.assets"
-      ],
-      "metadata": {
-        "/StorageStack/VideoBucket/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoBucket6ED8E1AF"
-          }
-        ],
-        "/StorageStack/VideoBucket/Policy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoBucketPolicyDE50723C"
-          }
-        ],
-        "/StorageStack/VideoBucket/AutoDeleteObjectsCustomResource/Default": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "VideoBucketAutoDeleteObjectsCustomResource5F365B42"
-          }
-        ],
-        "/StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
-          }
-        ],
-        "/StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
-          }
-        ],
-        "/StorageStack/AssetsBucket/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "AssetsBucket5CB76180"
-          }
-        ],
-        "/StorageStack/AssetsBucket/Policy/Resource": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "AssetsBucketPolicyFFACF6C4"
-          }
-        ],
-        "/StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource/Default": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "AssetsBucketAutoDeleteObjectsCustomResource51BA1286"
-          }
-        ],
-        "/StorageStack/CDKMetadata/Default": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "CDKMetadata"
-          }
-        ],
-        "/StorageStack/CDKMetadata/Condition": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "CDKMetadataAvailable"
-          }
-        ],
-        "/StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefAssetsBucket5CB761808BF2E271"
-          }
-        ],
-        "/StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefVideoBucket6ED8E1AF864760DE"
-          }
-        ],
-        "/StorageStack/BootstrapVersion": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "BootstrapVersion"
-          }
-        ],
-        "/StorageStack/CheckBootstrapVersion": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "CheckBootstrapVersion"
-          }
-        ]
-      },
-      "displayName": "StorageStack"
     },
     "DatabaseStack.assets": {
       "type": "cdk:asset-manifest",
@@ -619,7 +517,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fb3a29c878641cdaac06cd008b7ee687ac0a2ad3cbe66f0941ec3460c862f46a.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0102294c14adc6bcd5c9f1ddbaf800046ecf74655af08ea821377ccf2c452543.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -677,6 +575,18 @@
             "data": "CDKMetadataAvailable"
           }
         ],
+        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
+          }
+        ],
+        "/QueueStack/Exports/Output{\"Ref\":\"VideoToTranscriptQueueEE07C8F2\"}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
+          }
+        ],
         "/QueueStack/Exports/Output{\"Ref\":\"UrlToVideoQueue9766BE39\"}": [
           {
             "type": "aws:cdk:logicalId",
@@ -687,18 +597,6 @@
           {
             "type": "aws:cdk:logicalId",
             "data": "ExportsOutputFnGetAttUrlToVideoQueue9766BE39Arn9D2DB0FD"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Ref\":\"VideoToTranscriptQueueEE07C8F2\"}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputRefVideoToTranscriptQueueEE07C8F25347E96A"
-          }
-        ],
-        "/QueueStack/Exports/Output{\"Fn::GetAtt\":[\"VideoToTranscriptQueueEE07C8F2\",\"Arn\"]}": [
-          {
-            "type": "aws:cdk:logicalId",
-            "data": "ExportsOutputFnGetAttVideoToTranscriptQueueEE07C8F2ArnA39F507E"
           }
         ],
         "/QueueStack/Exports/Output{\"Ref\":\"TranscriptToClaimsQueueDB98A91C\"}": [
@@ -728,6 +626,184 @@
       },
       "displayName": "QueueStack"
     },
+    "StorageStack.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "StorageStack.assets.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+      }
+    },
+    "StorageStack": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://unknown-account/unknown-region",
+      "properties": {
+        "templateFile": "StorageStack.template.json",
+        "terminationProtection": false,
+        "validateOnSynth": false,
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/509ce6271b157d979c25dfd0cb2aff9f6117e9656ec59423dea9da0941ae3c05.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
+        "additionalDependencies": [
+          "StorageStack.assets"
+        ],
+        "lookupRole": {
+          "arn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-lookup-role-${AWS::AccountId}-${AWS::Region}",
+          "requiresBootstrapStackVersion": 8,
+          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+        }
+      },
+      "dependencies": [
+        "VpcStack",
+        "QueueStack",
+        "DatabaseStack",
+        "EcrStack",
+        "StorageStack.assets"
+      ],
+      "metadata": {
+        "/StorageStack/VideoBucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VideoBucket6ED8E1AF"
+          }
+        ],
+        "/StorageStack/VideoBucket/Policy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VideoBucketPolicyDE50723C"
+          }
+        ],
+        "/StorageStack/VideoBucket/AutoDeleteObjectsCustomResource/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VideoBucketAutoDeleteObjectsCustomResource5F365B42"
+          }
+        ],
+        "/StorageStack/VideoBucket/Notifications/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VideoBucketNotificationsE73D63C7"
+          }
+        ],
+        "/StorageStack/VideoBucket/AllowBucketNotificationsToStorageStackS3VideoEventHandlerLambda13334BAF": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VideoBucketAllowBucketNotificationsToStorageStackS3VideoEventHandlerLambda13334BAF412FB1F4"
+          }
+        ],
+        "/StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+          }
+        ],
+        "/StorageStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+          }
+        ],
+        "/StorageStack/AssetsBucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "AssetsBucket5CB76180"
+          }
+        ],
+        "/StorageStack/AssetsBucket/Policy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "AssetsBucketPolicyFFACF6C4"
+          }
+        ],
+        "/StorageStack/AssetsBucket/AutoDeleteObjectsCustomResource/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "AssetsBucketAutoDeleteObjectsCustomResource51BA1286"
+          }
+        ],
+        "/StorageStack/S3VideoEventHandlerLambdaRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "S3VideoEventHandlerLambdaRoleE769571E"
+          }
+        ],
+        "/StorageStack/S3VideoEventHandlerLambdaRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "S3VideoEventHandlerLambdaRoleDefaultPolicy790DFF7E"
+          }
+        ],
+        "/StorageStack/S3VideoEventHandlerLambdaSecurityGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "S3VideoEventHandlerLambdaSecurityGroupF6C6F1AF"
+          }
+        ],
+        "/StorageStack/S3VideoEventHandlerLambda/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "S3VideoEventHandlerLambdaD7046E48"
+          }
+        ],
+        "/StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC"
+          }
+        ],
+        "/StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36"
+          }
+        ],
+        "/StorageStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691"
+          }
+        ],
+        "/StorageStack/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/StorageStack/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/StorageStack/Exports/Output{\"Ref\":\"AssetsBucket5CB76180\"}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputRefAssetsBucket5CB761808BF2E271"
+          }
+        ],
+        "/StorageStack/Exports/Output{\"Ref\":\"VideoBucket6ED8E1AF\"}": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ExportsOutputRefVideoBucket6ED8E1AF864760DE"
+          }
+        ],
+        "/StorageStack/BootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BootstrapVersion"
+          }
+        ],
+        "/StorageStack/CheckBootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CheckBootstrapVersion"
+          }
+        ]
+      },
+      "displayName": "StorageStack"
+    },
     "ApiStack.assets": {
       "type": "cdk:asset-manifest",
       "properties": {
@@ -745,7 +821,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/30af132a55ffc132f804c7f7fc65bed251b1ada1b70f44dd7ec2d1e2652cf705.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/8bcbaa5d2e83ad1a008be1521a4159f470dd0fb7b8c37fe72d30c84ca6f1d290.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [

@@ -1,9 +1,12 @@
 """FastAPI REST API service for fact-checking jobs."""
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 import os
 import sys
 import re
+import time
 
 # Add shared directory to path
 # From /app/app/main.py, go up one level to /app, then shared is at /app/shared
@@ -13,11 +16,12 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
-from app.models import CreateJobRequest, CreateJobResponse, JobResponse
-from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url
+from app.models import CreateJobRequest, CreateJobResponse, JobResponse, CreateUploadJobResponse, GetUploadUrlResponse
+from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url, create_upload_job, generate_presigned_upload_url
 from app.migrations import run_migrations
-from shared.database import get_db, JobStatus
-from shared.logger import get_logger, bind_job_id
+from shared.database import get_db, JobStatus, Job
+import uuid
+from shared.logger import get_logger, bind_job_id, configure_logging
 
 # Initialize logger with resource name
 logger = get_logger("api")
@@ -76,11 +80,150 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Log HTTP exceptions (400, 404, 403, 500, etc.) with request context."""
+    # Determine log level based on status code
+    status_code = exc.status_code
+    if 400 <= status_code < 500:
+        # Client errors (4xx) - log as warning
+        log_level = "warning"
+    else:
+        # Server errors (5xx) - log as error
+        log_level = "error"
+    
+    # Extract client ID from headers if available
+    client_id = request.headers.get("X-Client-ID")
+    
+    # Log the error with context
+    log_data = {
+        "path": request.url.path,
+        "method": request.method,
+        "status_code": status_code,
+        "detail": exc.detail,
+        "client_id": client_id,
+    }
+    
+    if log_level == "warning":
+        logger.warning("HTTP error", **log_data)
+    else:
+        logger.error("HTTP error", **log_data)
+    
+    # Return the standard FastAPI error response
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": exc.detail}
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log request validation errors (Pydantic validation failures) with validation details."""
+    # Extract client ID from headers if available
+    client_id = request.headers.get("X-Client-ID")
+    
+    # Format validation errors for logging
+    errors = exc.errors()
+    error_details = []
+    for error in errors:
+        error_details.append({
+            "field": ".".join(str(loc) for loc in error.get("loc", [])),
+            "message": error.get("msg"),
+            "type": error.get("type"),
+        })
+    
+    # Log the validation error
+    log_data = {
+        "path": request.url.path,
+        "method": request.method,
+        "status_code": 422,
+        "validation_errors": error_details,
+        "client_id": client_id,
+    }
+    
+    logger.warning("Request validation error", **log_data)
+    
+    # Return the standard FastAPI validation error response
+    return JSONResponse(
+        status_code=422,
+        content={"detail": errors}
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Log all unhandled exceptions (including SQLAlchemy/database errors) with full context."""
+    # Extract client ID from headers if available
+    client_id = request.headers.get("X-Client-ID")
+    
+    # Build log data with request context
+    log_data = {
+        "path": request.url.path,
+        "method": request.method,
+        "status_code": 500,
+        "exception_type": type(exc).__name__,
+        "exception_message": str(exc),
+        "client_id": client_id,
+    }
+    
+    # Log the unhandled exception with full traceback
+    logger.error("Unhandled exception", exc_info=True, **log_data)
+    
+    # Return 500 error response
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming requests for better observability."""
+    start_time = time.time()
+    
+    # Extract client ID from headers if available
+    client_id = request.headers.get("X-Client-ID")
+    
+    # Log request
+    log_data = {
+        "path": request.url.path,
+        "method": request.method,
+        "client_id": client_id,
+    }
+    logger.debug("Incoming request", **log_data)
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Calculate duration
+    duration = time.time() - start_time
+    
+    # Log response
+    response_log_data = {
+        "path": request.url.path,
+        "method": request.method,
+        "status_code": response.status_code,
+        "duration_ms": round(duration * 1000, 2),
+        "client_id": client_id,
+    }
+    
+    # Use appropriate log level based on status code
+    if response.status_code >= 500:
+        logger.error("Request completed", **response_log_data)
+    elif response.status_code >= 400:
+        logger.warning("Request completed", **response_log_data)
+    else:
+        logger.debug("Request completed", **response_log_data)
+    
+    return response
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database connection pool and run migrations on startup."""
     logger.info("Starting API service")
     await run_migrations()
+    configure_logging()
     logger.info("Database migrations completed and connection pool initialized")
 
 
@@ -134,6 +277,51 @@ async def create_job(
     except Exception as e:
         logger.error("Failed to create job", exc_info=True, error=str(e), video_url=str(request.video_url))
         raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")
+
+@app.post("/upload-jobs", response_model=CreateUploadJobResponse, status_code=201)
+async def create_upload_job_endpoint(
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id)
+):
+    """Create a new job for direct video upload and return S3 presigned upload URL."""
+    try:
+        # Client ID is required
+        if not client_id:
+            logger.warning("Missing client ID in request")
+            raise HTTPException(status_code=400, detail="X-Client-ID header is required")
+        
+        logger.info("Creating new upload job", client_id=client_id)
+        
+        # Create job and get S3 key
+        job_id, video_s3_key = await create_upload_job(db, client_id)
+        job_logger = bind_job_id(logger, job_id)
+        job_logger.debug("Upload job created", video_s3_key=video_s3_key)
+        
+        # Get video bucket name from environment
+        video_bucket = os.getenv("VIDEO_BUCKET")
+        if not video_bucket:
+            job_logger.error("VIDEO_BUCKET not configured")
+            raise HTTPException(status_code=500, detail="VIDEO_BUCKET not configured")
+        
+        # Generate presigned upload URL (1 hour expiration)
+        upload_url = await generate_presigned_upload_url(video_bucket, video_s3_key, expiration=3600)
+        
+        if not upload_url:
+            job_logger.error("Failed to generate presigned upload URL")
+            raise HTTPException(status_code=500, detail="Failed to generate presigned upload URL")
+        
+        job_logger.info("Upload URL generated successfully")
+        return CreateUploadJobResponse(
+            job_id=job_id,
+            upload_url=upload_url,
+            expires_in=3600
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to create upload job", exc_info=True, error=str(e), client_id=client_id)
+        raise HTTPException(status_code=500, detail=f"Failed to create upload job: {str(e)}")
 
 
 @app.get("/jobs/{job_id}", response_model=JobResponse)
@@ -219,6 +407,82 @@ async def get_thumbnail_url(
     except Exception as e:
         job_logger.error("Failed to get thumbnail URL", exc_info=True, error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get thumbnail URL: {str(e)}")
+
+
+@app.get("/jobs/{job_id}/upload-url", response_model=GetUploadUrlResponse)
+async def get_upload_url(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id)
+):
+    """Get S3 presigned upload URL for a failed job (hybrid upload recovery)."""
+    job_logger = bind_job_id(logger, job_id)
+    job_logger.debug("Getting upload URL for job")
+    
+    try:
+        # Get job from database
+        job = await get_job_by_id(db, job_id)
+        if not job:
+            job_logger.warning("Job not found")
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # Validate that the job belongs to the requesting client
+        if client_id and job.get("client_id") != client_id:
+            job_logger.warning("Job does not belong to client", client_id=client_id, job_client_id=job.get("client_id"))
+            raise HTTPException(status_code=403, detail="Job does not belong to this client")
+        
+        # Validate job status and failed flag
+        job_status = job.get("status")
+        job_failed = job.get("failed", False)
+        
+        if job_status != JobStatus.DOWNLOADING.value or not job_failed:
+            job_logger.warning(
+                "Job not eligible for upload recovery",
+                status=job_status,
+                failed=job_failed
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Job is not eligible for upload recovery. Status must be 'downloading' and failed must be true. Current: status={job_status}, failed={job_failed}"
+            )
+        
+        # Get or generate S3 key
+        video_s3_key = job.get("video_s3_key")
+        if not video_s3_key:
+            video_s3_key = f"videos/{job_id}.mp4"
+            # Update job with S3 key
+            from sqlalchemy import select
+            stmt = select(Job).where(Job.id == uuid.UUID(job_id))
+            result = await db.execute(stmt)
+            job_obj = result.scalar_one_or_none()
+            if job_obj:
+                job_obj.video_s3_key = video_s3_key
+                await db.commit()
+        
+        # Get video bucket name from environment
+        video_bucket = os.getenv("VIDEO_BUCKET")
+        if not video_bucket:
+            job_logger.error("VIDEO_BUCKET not configured")
+            raise HTTPException(status_code=500, detail="VIDEO_BUCKET not configured")
+        
+        # Generate presigned upload URL (1 hour expiration)
+        upload_url = await generate_presigned_upload_url(video_bucket, video_s3_key, expiration=3600)
+        
+        if not upload_url:
+            job_logger.error("Failed to generate presigned upload URL")
+            raise HTTPException(status_code=500, detail="Failed to generate presigned upload URL")
+        
+        job_logger.info("Upload URL generated successfully for failed job")
+        return GetUploadUrlResponse(
+            upload_url=upload_url,
+            expires_in=3600
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        job_logger.error("Failed to get upload URL", exc_info=True, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get upload URL: {str(e)}")
 
 
 @app.get("/health")

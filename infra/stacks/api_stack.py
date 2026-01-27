@@ -66,7 +66,7 @@ class ApiStack(Stack):
         task_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
-                actions=["s3:GetObject"],
+                actions=["s3:GetObject", "s3:PutObject"],
                 resources=[
                     f"arn:aws:s3:::{assets_bucket_name}/*",
                     f"arn:aws:s3:::{video_bucket_name}/*",
