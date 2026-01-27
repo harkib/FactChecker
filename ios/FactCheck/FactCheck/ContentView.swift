@@ -8,6 +8,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import Photos
 
 // MARK: - Citation Model
 
@@ -319,6 +320,7 @@ struct JobCardView: View {
     
     @State private var thumbnailURL: URL?
     @State private var isLoadingThumbnail = false
+    @State private var isFailedDownloadSectionExpanded = false
     
     private func loadThumbnail() {
         // Only load if thumbnailURL is nil, not already loading, and job has frames
@@ -390,45 +392,13 @@ struct JobCardView: View {
                     HStack(spacing: 8) {
                         // Status Badge (only show if not completed)
                         if job.status != "completed" {
-                            StatusBadge(status: job.status)
+                            StatusBadge(status: job.failed == true ? "failed_\(job.status)" : job.status)
                         }
                         
                         // Verdict Summary Badges (if completed) - show summation of all verdicts
                         if job.status == "completed", let verifiedClaims = job.verified_claims, !verifiedClaims.verifications.isEmpty {
                             VerdictSummaryBadges(verifications: verifiedClaims.verifications)
                         }
-                    }
-                    
-                    // Upload button for failed jobs (status = downloading and failed = true)
-                    if job.status == "downloading" && (job.failed == true) {
-                        PhotosPicker(
-                            selection: Binding(
-                                get: { nil },
-                                set: { newItem in
-                                    if let newItem = newItem {
-                                        Task {
-                                            if let data = try? await newItem.loadTransferable(type: Data.self) {
-                                                viewModel.uploadVideoForFailedJob(jobId: job.id, videoData: data)
-                                            }
-                                        }
-                                    }
-                                }
-                            ),
-                            matching: .videos,
-                            photoLibrary: .shared()
-                        ) {
-                            HStack {
-                                Image(systemName: "arrow.up.circle.fill")
-                                Text("Upload Video")
-                            }
-                            .font(.caption)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        }
-                        .disabled(viewModel.isUploading || viewModel.isLoading)
                     }
                 }
                 
@@ -447,6 +417,100 @@ struct JobCardView: View {
             }
             .onAppear {
                 loadThumbnail()
+            }
+            
+            // Direct Upload Section for failed downloading jobs (collapsible)
+            if job.status == "downloading" && job.failed == true {
+                Divider()
+                    .padding(.vertical, 2)
+                
+                VStack(alignment: .leading, spacing: 0) {
+                    // Collapsible Header
+                    Button(action: {
+                        isFailedDownloadSectionExpanded.toggle()
+                    }) {
+                        HStack {
+                            Text("Try direct video upload")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: isFailedDownloadSectionExpanded ? "chevron.up" : "chevron.down")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 2)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // Collapsible Content
+                    if isFailedDownloadSectionExpanded {
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Upload video text
+                            Text("Download video to camera roll")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .allowsHitTesting(false)
+
+                            // Open Original URL Button
+                            if let url = URL(string: job.video_url) {
+                                Button(action: {
+                                    UIApplication.shared.open(url)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "safari")
+                                        Text("Open Original URL")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                            
+                            // Upload video text
+                            Text("Upload video")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .allowsHitTesting(false)
+                            
+                            // Upload video button
+                            PhotosPicker(
+                                selection: Binding(
+                                    get: { nil },
+                                    set: { newItem in
+                                        if let newItem = newItem {
+                                            Task {
+                                                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                                                    viewModel.uploadVideoForFailedJob(jobId: job.id, videoData: data)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ),
+                                matching: .videos,
+                                photoLibrary: .shared()
+                            ) {
+                                HStack {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                    Text("Upload Video")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(viewModel.isUploading || viewModel.isLoading ? Color.gray : Color.orange)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .disabled(viewModel.isUploading || viewModel.isLoading)
+                        }
+                        .padding(.top, 8)
+                    }
+                }
             }
             
             // Expanded Content (only if completed and expanded)
@@ -534,6 +598,7 @@ struct VerificationCardView: View {
                     .foregroundColor(.secondary)
                     .font(.caption)
             }
+            .layoutPriority(1)
             .contentShape(Rectangle())
             .onTapGesture {
                 onTap()
@@ -629,7 +694,11 @@ struct StatusBadge: View {
     }
     
     private func statusColor(for status: String) -> Color {
-        switch status.lowercased() {
+        let lowercasedStatus = status.lowercased()
+        if lowercasedStatus.hasPrefix("failed") {
+            return .red
+        }
+        switch lowercasedStatus {
         case "completed":
             return .green
         case "failed":
