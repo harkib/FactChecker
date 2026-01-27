@@ -108,7 +108,7 @@ struct ContentView: View {
                         Text("No jobs yet")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        Text("Submit a video URL to get started")
+                        Text("Submit a video to get started")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -136,7 +136,7 @@ struct ContentView: View {
             .refreshable {
                 await viewModel.refreshJobs()
             }
-            .navigationTitle("Fact Checker")
+            .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -388,12 +388,14 @@ struct JobCardView: View {
                         .lineLimit(2)
                     
                     HStack(spacing: 8) {
-                        // Status Badge
-                        StatusBadge(status: job.status)
+                        // Status Badge (only show if not completed)
+                        if job.status != "completed" {
+                            StatusBadge(status: job.status)
+                        }
                         
-                        // Verdict Badge (if completed) - show first verification verdict
-                        if job.status == "completed", let verifiedClaims = job.verified_claims, let firstVerdict = verifiedClaims.verifications.first?.verdict {
-                            VerdictBadge(verdict: firstVerdict)
+                        // Verdict Summary Badges (if completed) - show summation of all verdicts
+                        if job.status == "completed", let verifiedClaims = job.verified_claims, !verifiedClaims.verifications.isEmpty {
+                            VerdictSummaryBadges(verifications: verifiedClaims.verifications)
                         }
                     }
                     
@@ -455,11 +457,6 @@ struct JobCardView: View {
                     // Verifications Section (replaces claims + claim_results)
                     if !verifiedClaims.verifications.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Verifications")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-                            
                             ForEach(Array(verifiedClaims.verifications.enumerated()), id: \.offset) { index, verification in
                                 VerificationCardView(
                                     verification: verification,
@@ -651,14 +648,18 @@ struct VerdictBadge: View {
     let verdict: String
     
     var body: some View {
-        Text(verdict.replacingOccurrences(of: "_", with: " ").capitalized)
-            .font(.caption)
-            .fontWeight(.semibold)
-            .foregroundColor(verdictColor(for: verdict))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(verdictColor(for: verdict).opacity(0.2))
-            .cornerRadius(6)
+        HStack(spacing: 4) {
+            Image(systemName: verdictIcon(for: verdict))
+                .font(.caption2)
+            Text(verdict.replacingOccurrences(of: "_", with: " ").capitalized)
+                .font(.caption)
+                .fontWeight(.semibold)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(verdictColor(for: verdict))
+        .cornerRadius(6)
     }
     
     private func verdictColor(for verdict: String) -> Color {
@@ -676,6 +677,156 @@ struct VerdictBadge: View {
         default:
             return .primary
         }
+    }
+    
+    private func verdictIcon(for verdict: String) -> String {
+        switch verdict.uppercased() {
+        case "TRUE":
+            return "checkmark.circle.fill"
+        case "FALSE":
+            return "xmark.circle.fill"
+        case "PARTIALLY_TRUE":
+            return "exclamationmark.circle.fill"
+        case "UNVERIFIABLE", "DISPUTED":
+            return "questionmark.circle.fill"
+        case "NOT_FACTUAL":
+            return "minus.circle.fill"
+        default:
+            return "circle.fill"
+        }
+    }
+}
+
+// MARK: - Verdict Summary Badges
+
+struct VerdictSummaryBadges: View {
+    let verifications: [Verification]
+    
+    private var verdictCounts: [String: Int] {
+        Dictionary(grouping: verifications, by: { $0.verdict })
+            .mapValues { $0.count }
+    }
+    
+    private var summaryVerdict: String {
+        // Count verdicts
+        let trueCount = verdictCounts["TRUE"] ?? 0
+        let partiallyTrueCount = verdictCounts["PARTIALLY_TRUE"] ?? 0
+        let falseCount = verdictCounts["FALSE"] ?? 0
+        
+        // Calculate numerator = (# True) + (# partially true)/2
+        let numerator = Double(trueCount) + Double(partiallyTrueCount) / 2.0
+        
+        // Calculate denominator = (# True) + (# partially true) + (# False)
+        let denominator = Double(trueCount) + Double(partiallyTrueCount) + Double(falseCount)
+        
+        // Handle divide by zero case
+        guard denominator > 0 else {
+            // Return most common verdict
+            return mostCommonVerdict()
+        }
+        
+        // Calculate score = numerator / denominator
+        let score = numerator / denominator
+        
+        // Determine summary verdict based on score
+        // If score == 1.0 and there are no partially true verdicts, show "True"
+        // If score == 1.0 but there are partially true verdicts, show "Mostly True"
+        if score == 1.0 {
+            if partiallyTrueCount > 0 {
+                return "MOSTLY_TRUE"
+            } else {
+                return "TRUE"
+            }
+        } else if score > 0.65 {
+            return "MOSTLY_TRUE"
+        } else if score > 0.45 {
+            return "PARTIALLY_TRUE"
+        } else {
+            return "NOT_TRUE"
+        }
+    }
+    
+    private func mostCommonVerdict() -> String {
+        guard let maxVerdict = verdictCounts.max(by: { $0.value < $1.value }) else {
+            return "UNVERIFIABLE"
+        }
+        return maxVerdict.key
+    }
+    
+    private func verdictColor(for verdict: String) -> Color {
+        switch verdict.uppercased() {
+        case "TRUE":
+            return .green
+        case "MOSTLY_TRUE":
+            return .green.opacity(0.8)
+        case "FALSE":
+            return .red
+        case "NOT_TRUE":
+            return .red
+        case "PARTIALLY_TRUE":
+            return .orange
+        case "UNVERIFIABLE", "DISPUTED":
+            return .yellow
+        case "NOT_FACTUAL":
+            return .gray
+        default:
+            return .primary
+        }
+    }
+    
+    private func verdictIcon(for verdict: String) -> String {
+        switch verdict.uppercased() {
+        case "TRUE", "MOSTLY_TRUE":
+            return "checkmark.circle.fill"
+        case "FALSE", "NOT_TRUE":
+            return "xmark.circle.fill"
+        case "PARTIALLY_TRUE":
+            return "exclamationmark.circle.fill"
+        case "UNVERIFIABLE", "DISPUTED":
+            return "questionmark.circle.fill"
+        case "NOT_FACTUAL":
+            return "minus.circle.fill"
+        default:
+            return "circle.fill"
+        }
+    }
+    
+    private func verdictDisplayText(for verdict: String) -> String {
+        switch verdict.uppercased() {
+        case "TRUE":
+            return "True"
+        case "MOSTLY_TRUE":
+            return "Mostly True"
+        case "FALSE":
+            return "False"
+        case "NOT_TRUE":
+            return "Not True"
+        case "PARTIALLY_TRUE":
+            return "Partially True"
+        case "UNVERIFIABLE":
+            return "Unverifiable"
+        case "DISPUTED":
+            return "Disputed"
+        case "NOT_FACTUAL":
+            return "Not Factual"
+        default:
+            return verdict.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: verdictIcon(for: summaryVerdict))
+                .font(.caption2)
+            Text(verdictDisplayText(for: summaryVerdict))
+                .font(.caption)
+                .fontWeight(.semibold)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(verdictColor(for: summaryVerdict))
+        .cornerRadius(6)
     }
 }
 
