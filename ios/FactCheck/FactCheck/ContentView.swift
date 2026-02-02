@@ -349,23 +349,25 @@ struct JobCardView: View {
             // Collapsed Header
             HStack(spacing: 12) {
                 // First frame thumbnail
+                let thumbHeight: CGFloat = 70
+                let thumbWidth: CGFloat = thumbHeight * (9.0/16.0)
                 if let url = thumbnailURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
                             ProgressView()
-                                .frame(width: 60, height: 60)
+                                .frame(width: thumbWidth, height: thumbHeight)
                         case .success(let image):
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                                .frame(width: 60, height: 60)
+                                .frame(width: thumbWidth, height: thumbHeight)
                                 .clipped()
                                 .cornerRadius(8)
                         case .failure:
                             Image(systemName: "photo")
                                 .foregroundColor(.secondary)
-                                .frame(width: 60, height: 60)
+                                .frame(width: thumbWidth, height: thumbHeight)
                                 .background(Color(.secondarySystemBackground))
                                 .cornerRadius(8)
                         @unknown default:
@@ -374,12 +376,12 @@ struct JobCardView: View {
                     }
                 } else if isLoadingThumbnail {
                     ProgressView()
-                        .frame(width: 60, height: 60)
+                        .frame(width: thumbWidth, height: thumbHeight)
                 } else {
                     // Placeholder when no frame available
                     Image(systemName: "photo")
                         .foregroundColor(.secondary)
-                        .frame(width: 60, height: 60)
+                        .frame(width: thumbWidth, height: thumbHeight)
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(8)
                 }

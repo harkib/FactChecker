@@ -35,8 +35,8 @@ class APIService {
     static let shared = APIService()
     
     // API Configuration
-    static let apiKey = "FdYFSZ1hGP5LZuFsYMRpf12ruojh7wY81FLlSkG8"
-    var baseURL: String = "https://zackj3esv2.execute-api.us-east-1.amazonaws.com/prod"
+    static let apiKey = "d6dbmgOaYn42U3AiHgIbg6FrXEc0ujeakhzi75Ud"
+    var baseURL: String = "https://qlnqmqi6qd.execute-api.us-east-1.amazonaws.com/prod"
     
     // Client ID (IDFV) - cached for performance
     private static let clientIDKey = "FactCheckClientID"
