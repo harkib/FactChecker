@@ -61,3 +61,23 @@ tmp/
 temp/
 *.tmp
 
+# Infrastructure (not needed in service images)
+infra/
+*.cdk.json
+cdk.out/
+*.template.json
+*.assets.json
+
+# iOS app (not needed in backend)
+ios/
+
+# Local development data
+local/
+
+# Other files
+build.sh
+push.sh
+docker-compose.yml
+DOCKER.md
+TODO.md
+vals.txt

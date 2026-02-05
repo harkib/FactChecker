@@ -353,18 +353,34 @@ class WorkerStacks(Stack):
     ):
         """Create a Lambda worker function triggered by SQS."""
         # Create Lambda execution role
+        managed_policies = [
+            iam.ManagedPolicy.from_aws_managed_policy_name(
+                "service-role/AWSLambdaBasicExecutionRole"
+            ),
+            iam.ManagedPolicy.from_aws_managed_policy_name(
+                "service-role/AWSLambdaVPCAccessExecutionRole"
+            ),
+        ]
+        
+        # Add additional policies for UrlToVideoWorker (for requests_ip_rotator)
+        if worker_id == "UrlToVideoWorker":
+            managed_policies.extend([
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "AmazonAPIGatewayAdministrator"
+                ),
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "AWSLambda_FullAccess"
+                ),
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "AmazonEC2ReadOnlyAccess"
+                ),
+            ])
+        
         lambda_role = iam.Role(
             self,
             f"{worker_id}LambdaRole",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AWSLambdaBasicExecutionRole"
-                ),
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AWSLambdaVPCAccessExecutionRole"
-                ),
-            ],
+            managed_policies=managed_policies,
         )
 
         # Grant SQS permissions (for receiving messages via event source mapping)
