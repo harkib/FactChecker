@@ -61,9 +61,11 @@ class DatabaseStack(Stack):
             publicly_accessible=False,
         )
 
-        # Create security group rule to allow access from ECS tasks
-        self.database.connections.allow_default_port_from_any_ipv4(
-            description="Allow access from ECS tasks"
+        # Create security group rule to allow access from VPC resources only
+        # Restrict to VPC CIDR for defense in depth (database is already in private subnet)
+        self.database.connections.allow_default_port_from(
+            ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            description="Allow access from VPC resources (ECS tasks, Lambda functions)"
         )
 
         # Add host to secret after database is created
