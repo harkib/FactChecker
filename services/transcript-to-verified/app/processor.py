@@ -12,6 +12,10 @@ from app.prompts import get_prompt_openai, get_prompt_gemini
 from shared.s3_client import download_file, list_objects
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.logger import get_logger, bind_job_id
+
+logger = get_logger("transcript-to-verified processor")
+
 
 def add_citations(response):
     """
@@ -24,8 +28,15 @@ def add_citations(response):
         Text with citations inserted
     """
     text = response.text
-    supports = response.candidates[0].grounding_metadata.grounding_supports
-    chunks = response.candidates[0].grounding_metadata.grounding_chunks
+    
+    try:
+        supports = response.candidates[0].grounding_metadata.grounding_supports
+        chunks = response.candidates[0].grounding_metadata.grounding_chunks
+    except Exception as e:
+        return text
+
+    if supports is None or chunks is None:
+        return text
 
     # Sort supports by end_index in descending order to avoid shifting issues when inserting.
     sorted_supports = sorted(supports, key=lambda s: s.segment.end_index, reverse=True)
@@ -200,14 +211,16 @@ async def extract_and_verify_claims_gemini(
     l_idx = extraction_text.find('{')
     r_idx = extraction_text.rfind('}')
     if l_idx == -1 or r_idx == -1:
+        logger.error("Invalid response text (not json)", extraction_text=extraction_text, response_text= extraction_response.text)
         raise ValueError(f"Invalid response text: {extraction_text}")
     extraction_output = extraction_text[l_idx:r_idx+1]
-    print(f"Extraction output: {extraction_output}\n")
+    
     
     result_data = json.loads(extraction_output)
     
     # Validate structure
     if "title" not in result_data or "verifications" not in result_data:
+        logger.error("Response missing required fields", result_data=result_data)
         raise ValueError("Response missing required fields: title and verifications")
     
     return result_data
@@ -238,10 +251,13 @@ async def extract_and_verify_claims(
     Returns:
         Dictionary with title and verifications: {title: str, verifications: [...]}
     """
+
+    bind_job_id(logger, job_id)
+
     if api_provider is None:
         api_provider = os.getenv("API_PROVIDER", "gemini").lower()
     
-    print(f"Using API provider: {api_provider}")
+    logger.info("Using API provider", api_provider=api_provider)
     
     if api_provider == "openai":
         return await extract_and_verify_claims_openai(

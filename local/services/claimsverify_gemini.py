@@ -111,8 +111,15 @@ def get_prompt(transcript: str, image_data_list: list) -> list:
 
 def add_citations(response):
     text = response.text
-    supports = response.candidates[0].grounding_metadata.grounding_supports
-    chunks = response.candidates[0].grounding_metadata.grounding_chunks
+
+    try:
+        supports = response.candidates[0].grounding_metadata.grounding_supports
+        chunks = response.candidates[0].grounding_metadata.grounding_chunks
+    except Exception as e:
+        return text
+
+    if supports is None or chunks is None:
+        return text
 
     # Sort supports by end_index in descending order to avoid shifting issues when inserting.
     sorted_supports = sorted(supports, key=lambda s: s.segment.end_index, reverse=True)
@@ -179,9 +186,10 @@ async def get_claims(job_id: str) -> bool:
         l_idx = extraction_text.find('{')
         r_idx = extraction_text.rfind('}')
         if l_idx == -1 or r_idx == -1:
+            print()
             raise ValueError(f"Invalid response text: {extraction_text}")
         extraction_output = extraction_text[l_idx:r_idx+1]
-        # print(extraction_response.to_json_dict())
+
         print(f"Extraction output: {extraction_output}\n")
         extraction_data = json.loads(extraction_output)
         
