@@ -498,7 +498,7 @@ struct JobCardView: View {
                     if isFailedDownloadSectionExpanded {
                         VStack(alignment: .leading, spacing: 12) {
                             // Upload video text
-                            Text("Download video to camera roll")
+                            Text("Download or Screen Record video to camera roll")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .allowsHitTesting(false)
@@ -847,17 +847,15 @@ struct VerdictSummaryBadges: View {
         let score = numerator / denominator
         
         // Determine summary verdict based on score
-        // If score == 1.0 and there are no partially true verdicts, show "True"
-        // If score == 1.0 but there are partially true verdicts, show "Mostly True"
         if score == 1.0 {
             if partiallyTrueCount > 0 {
                 return "MOSTLY_TRUE"
             } else {
                 return "TRUE"
             }
-        } else if score > 0.65 {
+        } else if score > 0.7 {
             return "MOSTLY_TRUE"
-        } else if score > 0.45 {
+        } else if score > 0.5 {
             return "PARTIALLY_TRUE"
         } else {
             return "NOT_TRUE"
