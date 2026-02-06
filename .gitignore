@@ -223,3 +223,6 @@ xcuserdata/
 
 # Mac OS
 .DS_Store
+
+# CDK
+infra/cdk.out/
