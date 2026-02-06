@@ -319,15 +319,23 @@ struct JobCardView: View {
     let onTap: () -> Void
     
     @State private var thumbnailURL: URL?
+    @State private var cachedThumbnail: UIImage?
     @State private var isLoadingThumbnail = false
     @State private var isFailedDownloadSectionExpanded = false
     
     private func loadThumbnail() {
-        // Only load if thumbnailURL is nil, not already loading, and job has frames
-        guard thumbnailURL == nil, !isLoadingThumbnail, job.frames_s3_prefix != nil else {
+        // Only load if we don't have a cached thumbnail or URL, not already loading, and job has frames
+        guard cachedThumbnail == nil, thumbnailURL == nil, !isLoadingThumbnail, job.frames_s3_prefix != nil else {
             return
         }
         
+        // Check job_id-based cache first
+        if let cachedImage = ThumbnailCacheManager.shared.getCachedThumbnail(jobId: job.id) {
+            cachedThumbnail = cachedImage
+            return
+        }
+        
+        // If not cached, fetch presigned URL
         isLoadingThumbnail = true
         Task {
             do {
@@ -346,19 +354,24 @@ struct JobCardView: View {
     
     /// Preload thumbnail image into cache for faster subsequent loads
     private func preloadThumbnail(url: URL) async {
-        // Check if image is already cached
-        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
-        if URLCache.shared.cachedResponse(for: request) != nil {
+        // Check if already cached by job_id
+        if ThumbnailCacheManager.shared.hasCachedThumbnail(jobId: job.id) {
             return // Already cached
         }
         
         // Load and cache the image
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: URLRequest(url: url))
             if let httpResponse = response as? HTTPURLResponse,
-               (200...299).contains(httpResponse.statusCode) {
-                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
-                URLCache.shared.storeCachedResponse(cachedResponse, for: request)
+               (200...299).contains(httpResponse.statusCode),
+               let image = UIImage(data: data) {
+                // Store in job_id-based cache
+                ThumbnailCacheManager.shared.storeThumbnail(jobId: job.id, image: image)
+                
+                // Update UI with cached image
+                await MainActor.run {
+                    cachedThumbnail = image
+                }
             }
         } catch {
             // Silently fail - AsyncImage will handle loading
@@ -372,7 +385,15 @@ struct JobCardView: View {
                 // First frame thumbnail
                 let thumbHeight: CGFloat = 70
                 let thumbWidth: CGFloat = thumbHeight * (9.0/16.0)
-                if let url = thumbnailURL {
+                if let cachedImage = cachedThumbnail {
+                    // Use cached image directly
+                    Image(uiImage: cachedImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: thumbWidth, height: thumbHeight)
+                        .clipped()
+                        .cornerRadius(8)
+                } else if let url = thumbnailURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -396,7 +417,7 @@ struct JobCardView: View {
                         }
                     }
                     .task {
-                        // Preload image into cache if not already cached
+                        // Preload image into job_id cache if not already cached
                         await preloadThumbnail(url: url)
                     }
                 } else if isLoadingThumbnail {
@@ -413,8 +434,9 @@ struct JobCardView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(job.title ?? "Untitled")
-                        .font(.headline)
-                        .lineLimit(2)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(3)
                     
                     HStack(spacing: 8) {
                         // Status Badge (only show if not completed)
@@ -812,8 +834,8 @@ struct VerdictSummaryBadges: View {
         // Calculate numerator = (# True) + (# partially true)/2
         let numerator = Double(trueCount) + Double(partiallyTrueCount) / 2.0
         
-        // Calculate denominator = (# True) + (# partially true) + (# False)
-        let denominator = Double(trueCount) + Double(partiallyTrueCount) + Double(falseCount)
+        // Calculate denominator = number of verdicts
+        let denominator = Double(verifications.count)
         
         // Handle divide by zero case
         guard denominator > 0 else {
