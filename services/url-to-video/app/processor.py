@@ -15,9 +15,10 @@ from yt_dlp.networking.common import Request, Response
 from yt_dlp.networking.exceptions import TransportError
 
 from shared.s3_client import upload_file
-from shared.database import update_job_video_s3_key_async, update_job_status_async, JobStatus
+from shared.database import update_job_video_s3_key_async, update_job_status_async, update_job_failed_async, JobStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.logger import get_logger
+import integv
 
 logger = get_logger("url-to-video processor")
 
@@ -165,6 +166,14 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
             
             logger.info("Downloading video", url=url)
             ydl.download([url])
+        
+        # Validate MP4 file integrity before uploading to S3
+        if not integv.verify(output_path):
+            error_message = "MP4 file validation failed: file is corrupted or invalid"
+            logger.error("MP4 validation failed", job_id=job_id, output_path=output_path)
+            await update_job_failed_async(session, job_id, True, error_message)
+            raise RuntimeError(error_message)
+
         
         # Upload to S3 (async)
         bucket = os.getenv("VIDEO_BUCKET")
