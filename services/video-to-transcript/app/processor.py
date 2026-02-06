@@ -1,5 +1,6 @@
 """Video processing to extract transcript and frames (async)."""
 import ffmpeg
+from ffmpeg._run import Error as FFmpegError
 import whisper
 import os
 import glob
@@ -12,6 +13,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.logger import get_logger
 
 logger = get_logger("video-to-transcript processor")
+
+
+def _run_ffmpeg(ffmpeg_stream, operation_name: str, **context):
+    """
+    Run an ffmpeg stream and handle errors with detailed stderr logging.
+    
+    Args:
+        ffmpeg_stream: The ffmpeg stream object (result of ffmpeg.input().output() chain)
+        operation_name: Name of the operation for logging (e.g., "audio extraction", "frame extraction")
+        **context: Additional context to include in error logs (e.g., video_path, audio_path)
+    
+    Raises:
+        FFmpegError: Re-raises the original exception after logging
+    """
+    try:
+        ffmpeg_stream.run(quiet=True)
+    except FFmpegError as e:
+        # Extract stderr from the exception for logging
+        stderr_output = ""
+        if hasattr(e, 'stderr') and e.stderr:
+            try:
+                stderr_output = e.stderr.decode('utf-8', errors='replace')
+            except (AttributeError, UnicodeDecodeError):
+                stderr_output = str(e.stderr) if e.stderr else ""
+        
+        logger.error(
+            f"FFmpeg error during {operation_name}",
+            error=str(e),
+            stderr=stderr_output,
+            **context
+        )
+        raise
+
 
 async def process_video(video_s3_key: str, job_id: str, video_bucket: str, assets_bucket: str, session: AsyncSession):
     """
@@ -46,12 +80,14 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
         
         # Extract audio (synchronous operation - blocks event loop but acceptable)
         logger.info("Extracting audio from video...")
-        (
+        _run_ffmpeg(
             ffmpeg
             .input(video_path)
             .output(audio_path, acodec='pcm_s16le', ar=44100, ac=2)
-            .overwrite_output()
-            .run(quiet=True)
+            .overwrite_output(),
+            operation_name="audio extraction",
+            video_path=video_path,
+            audio_path=audio_path
         )
         
         # Transcribe audio
@@ -68,13 +104,16 @@ async def process_video(video_s3_key: str, job_id: str, video_bucket: str, asset
         # Extract frames (1 frame per 3 seconds) (synchronous operation)
         logger.info("Extracting frames...")
         temp_frame_pattern = os.path.join(frames_dir, 'frame_%06d.jpg')
-        (
+        _run_ffmpeg(
             ffmpeg
             .input(video_path)
             .filter('fps', fps='1/3')  # 1 frame per 3 seconds
             .output(temp_frame_pattern, q=2)
-            .overwrite_output()
-            .run(quiet=True)
+            .overwrite_output(),
+            operation_name="frame extraction",
+            video_path=video_path,
+            frames_dir=frames_dir,
+            frame_pattern=temp_frame_pattern
         )
         
         # Rename frames with timestamp-based names and upload to S3 (async)
