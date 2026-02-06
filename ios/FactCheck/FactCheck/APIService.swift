@@ -309,6 +309,8 @@ class APIService {
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        // Use cache policy that returns cached data if available, otherwise loads from network
+        request.cachePolicy = .returnCacheDataElseLoad
         addAPIKey(to: &request)
         addClientID(to: &request)
         
@@ -328,6 +330,9 @@ class APIService {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let urlString = json["url"] as? String,
                let thumbnailURL = URL(string: urlString) {
+                // Store the response in cache for future use
+                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
+                URLCache.shared.storeCachedResponse(cachedResponse, for: request)
                 return thumbnailURL
             }
             

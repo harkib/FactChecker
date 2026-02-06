@@ -11,6 +11,23 @@ import SwiftUI
 struct FactCheckApp: App {
     @StateObject private var viewModel = FactCheckViewModel()
     
+    init() {
+        // Configure URL cache for thumbnail images
+        configureURLCache()
+    }
+    
+    private func configureURLCache() {
+        // Configure shared URL cache with appropriate memory and disk limits
+        // Memory: 50MB (for fast access to recently viewed thumbnails)
+        // Disk: 200MB (for persistent storage across app launches)
+        let cache = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,  // 50MB
+            diskCapacity: 200 * 1024 * 1024,   // 200MB
+            diskPath: "thumbnail_cache"
+        )
+        URLCache.shared = cache
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

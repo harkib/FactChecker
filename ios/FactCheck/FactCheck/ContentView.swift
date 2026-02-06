@@ -344,6 +344,27 @@ struct JobCardView: View {
         }
     }
     
+    /// Preload thumbnail image into cache for faster subsequent loads
+    private func preloadThumbnail(url: URL) async {
+        // Check if image is already cached
+        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
+        if URLCache.shared.cachedResponse(for: request) != nil {
+            return // Already cached
+        }
+        
+        // Load and cache the image
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                let cachedResponse = CachedURLResponse(response: httpResponse, data: data)
+                URLCache.shared.storeCachedResponse(cachedResponse, for: request)
+            }
+        } catch {
+            // Silently fail - AsyncImage will handle loading
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Collapsed Header
@@ -373,6 +394,10 @@ struct JobCardView: View {
                         @unknown default:
                             EmptyView()
                         }
+                    }
+                    .task {
+                        // Preload image into cache if not already cached
+                        await preloadThumbnail(url: url)
                     }
                 } else if isLoadingThumbnail {
                     ProgressView()
