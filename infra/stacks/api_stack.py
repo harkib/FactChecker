@@ -73,6 +73,23 @@ class ApiStack(Stack):
                 ],
             )
         )
+        
+        # Grant API Gateway permissions for creating API keys and associating with usage plans
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "apigateway:POST",
+                    "apigateway:GET",
+                    "apigateway:PUT",
+                ],
+                resources=[
+                    f"arn:aws:apigateway:{self.region}::/apikeys/*",
+                    f"arn:aws:apigateway:{self.region}::/usageplans/*",
+                    f"arn:aws:apigateway:{self.region}::/usageplans/*/keys/*",
+                ],
+            )
+        )
 
         # Create execution role
         execution_role = iam.Role(
@@ -117,6 +134,8 @@ class ApiStack(Stack):
                     "ASSETS_BUCKET": assets_bucket_name,
                     "URL_TO_VIDEO_QUEUE_URL": url_to_video_queue_url,
                     "AWS_REGION": self.region,
+                    "API_GATEWAY_REST_API_ID": self.rest_api.rest_api_id,
+                    "API_GATEWAY_USAGE_PLAN_ID": basic_user_usage_plan.usage_plan_id,
                 },
                 secrets={
                     "DB_USER": ecs.Secret.from_secrets_manager(
@@ -232,8 +251,21 @@ class ApiStack(Stack):
             ),
             api_key_required=True,  # Require API key for all requests
         )
+        
+        # Add /auth/apple-signin endpoint as public (no API key required)
+        auth_resource = self.rest_api.root.add_resource("auth")
+        apple_signin_resource = auth_resource.add_resource("apple-signin")
+        apple_signin_resource.add_method(
+            "POST",
+            apigw.HttpIntegration(
+                f"{alb_base_url}/auth/apple-signin",
+                http_method="POST",
+                proxy=True,
+            ),
+            api_key_required=False,  # Public endpoint - no API key required
+        )
 
-        # Create usage plan with throttling
+        # Create usage plan with throttling (for existing hardcoded key)
         usage_plan = self.rest_api.add_usage_plan(
             "UsagePlan",
             name="factchecker-usage-plan",
@@ -250,6 +282,25 @@ class ApiStack(Stack):
         # Associate API key with usage plan and stage
         usage_plan.add_api_key(api_key)
         usage_plan.add_api_stage(
+            stage=self.rest_api.deployment_stage,
+        )
+        
+        # Create "basic-user" usage plan for Apple Sign In users
+        basic_user_usage_plan = self.rest_api.add_usage_plan(
+            "BasicUserUsagePlan",
+            name="basic-user",
+            throttle=apigw.ThrottleSettings(
+                rate_limit=50,  # requests per second
+                burst_limit=100,  # burst capacity
+            ),
+            quota=apigw.QuotaSettings(
+                limit=10000,  # requests per day
+                period=apigw.Period.DAY,
+            ),
+        )
+        
+        # Associate basic-user usage plan with stage
+        basic_user_usage_plan.add_api_stage(
             stage=self.rest_api.deployment_stage,
         )
 

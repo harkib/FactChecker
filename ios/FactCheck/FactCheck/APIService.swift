@@ -36,7 +36,6 @@ class APIService {
     static let shared = APIService()
     
     // API Configuration
-    static let apiKey = "d6dbmgOaYn42U3AiHgIbg6FrXEc0ujeakhzi75Ud"
     var baseURL: String = "https://qlnqmqi6qd.execute-api.us-east-1.amazonaws.com/prod"
     
     // Client ID (IDFV) - cached for performance
@@ -67,7 +66,14 @@ class APIService {
     }
     
     private func addAPIKey(to request: inout URLRequest) {
-        request.setValue(APIService.apiKey, forHTTPHeaderField: "X-API-Key")
+        // Get API key from Keychain via AuthService
+        if let apiKey = AuthService.shared.getAPIKey() {
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        } else {
+            // If no API key found, this request will fail - but we still set header to avoid nil
+            // The API Gateway will reject it, which is expected behavior
+            print("Warning: No API key found in Keychain")
+        }
     }
     
     private func addClientID(to request: inout URLRequest) {

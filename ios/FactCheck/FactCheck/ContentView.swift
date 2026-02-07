@@ -9,6 +9,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import Photos
+import AuthenticationServices
 
 // MARK: - Citation Model
 
@@ -74,6 +75,7 @@ extension String {
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: FactCheckViewModel
+    @StateObject private var authService = AuthService.shared
     @State private var selectedVideoItem: PhotosPickerItem? = nil
     @State private var selectedVideoData: Data? = nil
     @State private var selectedFailedJobId: String? = nil
@@ -82,7 +84,8 @@ struct ContentView: View {
     @State private var showPhotoPicker: Bool = false
     
     var body: some View {
-        NavigationView {
+        if authService.isAuthenticated {
+            NavigationView {
             List {
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
@@ -186,7 +189,67 @@ struct ContentView: View {
                     }
                 }
             }
+            }
+        } else {
+            // Sign In Screen
+            SignInView(authService: authService)
         }
+    }
+}
+
+// MARK: - Sign In View
+
+struct SignInView: View {
+    @ObservedObject var authService: AuthService
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            // App Logo/Icon
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.blue)
+            
+            Text("FactCheck")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text("Verify the facts in your videos")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Spacer()
+            
+            // Sign In with Apple Button
+            Button(action: {
+                authService.signInWithApple()
+            }) {
+                HStack {
+                    Image(systemName: "applelogo")
+                        .font(.system(size: 18))
+                    Text("Sign in with Apple")
+                        .font(.headline)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(Color.black)
+                .cornerRadius(10)
+            }
+            .padding(.horizontal, 40)
+            .disabled(authService.isLoading)
+            
+            if authService.isLoading {
+                ProgressView()
+                    .padding(.top, 16)
+            }
+            
+            Spacer()
+        }
+        .padding()
     }
 }
 
