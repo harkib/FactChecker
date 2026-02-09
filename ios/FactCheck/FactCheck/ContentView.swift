@@ -84,9 +84,10 @@ struct ContentView: View {
     @State private var showPhotoPicker: Bool = false
     
     var body: some View {
-        if authService.isAuthenticated {
-            NavigationView {
-            List {
+        Group {
+            if authService.isAuthenticated {
+                NavigationView {
+                List {
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
                     VStack(alignment: .leading, spacing: 8) {
@@ -142,6 +143,20 @@ struct ContentView: View {
             }
             .navigationTitle("")
             .toolbar {
+                // Settings menu (leading/left side)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button(role: .destructive, action: {
+                            authService.signOut()
+                        }) {
+                            Label("Logout", systemImage: "arrow.right.square")
+                        }
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+                
+                // Plus button (trailing/right side)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
@@ -188,11 +203,16 @@ struct ContentView: View {
                         }
                     }
                 }
+                }
             }
+            } else {
+                // Sign In Screen
+                SignInView(authService: authService)
             }
-        } else {
-            // Sign In Screen
-            SignInView(authService: authService)
+        }
+        .task {
+            // Verify API key on app launch if one exists
+            await authService.checkAuthenticationStatus()
         }
     }
 }
@@ -203,27 +223,41 @@ struct SignInView: View {
     @ObservedObject var authService: AuthService
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack {
             Spacer()
             
-            // App Logo/Icon
-            Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-            
-            Text("FactCheck")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Verify the facts in your videos")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            // Centered content
+            VStack(spacing: 24) {
+                // App Logo/Icon
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.blue)
+                
+                Text("FactCheck")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Verify the facts in your videos")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                if authService.isLoading {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Setting things up...")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 16)
+                }
+            }
             
             Spacer()
             
-            // Sign In with Apple Button
+            // Sign In with Apple Button at bottom
             Button(action: {
                 authService.signInWithApple()
             }) {
@@ -236,20 +270,13 @@ struct SignInView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(Color.black)
+                .background(authService.isLoading ? Color.gray : Color.black)
                 .cornerRadius(10)
             }
             .padding(.horizontal, 40)
+            .padding(.bottom, 40)
             .disabled(authService.isLoading)
-            
-            if authService.isLoading {
-                ProgressView()
-                    .padding(.top, 16)
-            }
-            
-            Spacer()
         }
-        .padding()
     }
 }
 
