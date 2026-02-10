@@ -13,7 +13,7 @@ if '/app' not in sys.path:
 from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
 from shared.sqs_client import send_message
-from shared.database import get_sessionmaker, update_job_status_async, update_job_failed_async, JobStatus
+from shared.database import get_sessionmaker, get_job_async, update_job_status_async, update_job_failed_async, JobStatus
 from app.processor import process_video
 
 # Initialize logger with resource name
@@ -31,7 +31,16 @@ async def process_message(message_body: dict, session, next_queue_url: str) -> b
     if not job_id or not video_s3_key:
         job_logger.warning("Invalid message: missing job_id or video_s3_key")
         return False
-    
+
+    # Idempotency: skip if job already has transcript (e.g. redelivery or duplicate message)
+    job = await get_job_async(session, job_id)
+    if job and job.get("transcript_s3_key") and job.get("frames_s3_prefix"):
+        job_logger.info(
+            "Job already has transcript and frames, skipping reprocessing",
+            job_id=job_id,
+        )
+        return True
+
     try:
         job_logger.info("Processing job: extracting transcript and frames", video_s3_key=video_s3_key)
         

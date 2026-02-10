@@ -73,6 +73,9 @@ class ApiStack(Stack):
                 ],
             )
         )
+        
+        # Note: API Gateway permissions will be added after rest_api is created
+        # This is a placeholder - actual permissions added below after rest_api creation
 
         # Create execution role
         execution_role = iam.Role(
@@ -92,6 +95,50 @@ class ApiStack(Stack):
                 actions=["secretsmanager:GetSecretValue"],
                 resources=[database_secret.secret_arn, openai_secret.secret_arn],
             )
+        )
+
+        # Create API Gateway REST API first (needed for environment variables)
+        # REST API supports throttling, API keys, and usage plans out of the box
+        self.rest_api = apigw.RestApi(
+            self,
+            "ApiGateway",
+            description="FactChecker API Gateway",
+            rest_api_name="factchecker-api",
+            endpoint_configuration=apigw.EndpointConfiguration(
+                types=[apigw.EndpointType.REGIONAL]
+            ),
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=apigw.Cors.ALL_ORIGINS,
+                allow_methods=apigw.Cors.ALL_METHODS,
+                allow_headers=["*"],
+                max_age=Duration.days(1),
+            ),
+            deploy_options=apigw.StageOptions(
+                # Configure throttling: 50 requests/second, burst of 100
+                throttling_rate_limit=50,
+                throttling_burst_limit=100,
+                stage_name="prod",
+                metrics_enabled=False,  # CloudWatch metrics disabled
+            ),
+        )
+
+        # Create "basic-user" usage plan for Apple Sign In users (needed for environment variables)
+        basic_user_usage_plan = self.rest_api.add_usage_plan(
+            "BasicUserUsagePlan",
+            name="basic-user",
+            throttle=apigw.ThrottleSettings(
+                rate_limit=50,  # requests per second
+                burst_limit=100,  # burst capacity
+            ),
+            quota=apigw.QuotaSettings(
+                limit=10000,  # requests per day
+                period=apigw.Period.DAY,
+            ),
+        )
+        
+        # Associate basic-user usage plan with stage
+        basic_user_usage_plan.add_api_stage(
+            stage=self.rest_api.deployment_stage,
         )
 
         # Create Fargate service with Application Load Balancer
@@ -117,6 +164,8 @@ class ApiStack(Stack):
                     "ASSETS_BUCKET": assets_bucket_name,
                     "URL_TO_VIDEO_QUEUE_URL": url_to_video_queue_url,
                     "AWS_REGION": self.region,
+                    "API_GATEWAY_REST_API_ID": self.rest_api.rest_api_id,
+                    "API_GATEWAY_USAGE_PLAN_ID": basic_user_usage_plan.usage_plan_id,
                 },
                 secrets={
                     "DB_USER": ecs.Secret.from_secrets_manager(
@@ -160,36 +209,6 @@ class ApiStack(Stack):
         #     target_utilization_percent=70,
         # )
 
-        # Create API Gateway REST API in front of ALB
-        # REST API supports throttling, API keys, and usage plans out of the box
-        self.rest_api = apigw.RestApi(
-            self,
-            "ApiGateway",
-            description="FactChecker API Gateway",
-            rest_api_name="factchecker-api",
-            endpoint_configuration=apigw.EndpointConfiguration(
-                types=[apigw.EndpointType.REGIONAL]
-            ),
-            default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=apigw.Cors.ALL_ORIGINS,
-                allow_methods=apigw.Cors.ALL_METHODS,
-                allow_headers=["*"],
-                max_age=Duration.days(1),
-            ),
-            deploy_options=apigw.StageOptions(
-                # Configure throttling: 50 requests/second, burst of 100
-                throttling_rate_limit=50,
-                throttling_burst_limit=100,
-                stage_name="prod",
-                # Note: Logging disabled - requires CloudWatch Logs role to be configured
-                # at account level. Enable after running:
-                # aws iam create-role --role-name api-gateway-cloudwatch-logs-role --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"apigateway.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
-                # aws iam attach-role-policy --role-name api-gateway-cloudwatch-logs-role --policy-arn arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
-                # aws apigateway put-account --cloudwatch-role-arn arn:aws:iam::ACCOUNT_ID:role/api-gateway-cloudwatch-logs-role
-                metrics_enabled=False,  # CloudWatch metrics disabled
-            ),
-        )
-
         # Create API key for authentication (create before methods so we can reference it)
         api_key = self.rest_api.add_api_key(
             "ApiKey",
@@ -200,6 +219,21 @@ class ApiStack(Stack):
         # For REST API HTTP proxy, the URI should include {proxy} placeholder
         # The double braces {{proxy}} become {proxy} in the final string
         alb_base_url = f"http://{self.fargate_service.load_balancer.load_balancer_dns_name}"
+        
+        # IMPORTANT: Add /auth/apple-signin endpoint BEFORE the catch-all proxy
+        # API Gateway evaluates routes in order, so specific routes must come first
+        auth_resource = self.rest_api.root.add_resource("auth")
+        apple_signin_resource = auth_resource.add_resource("apple-signin")
+        apple_signin_resource.add_method(
+            "POST",
+            apigw.HttpIntegration(
+                f"{alb_base_url}/auth/apple-signin",
+                http_method="POST",
+                proxy=True,
+            ),
+            api_key_required=False,  # Public endpoint - no API key required
+        )
+        
         proxy_integration = apigw.HttpIntegration(
             f"{alb_base_url}/{{proxy}}",
             http_method="ANY",
@@ -212,6 +246,7 @@ class ApiStack(Stack):
         )
         
         # Add catch-all proxy resource to forward all requests to ALB
+        # This must come AFTER specific routes like /auth/apple-signin
         proxy_resource = self.rest_api.root.add_resource("{proxy+}")
         proxy_resource.add_method(
             "ANY",
@@ -233,7 +268,7 @@ class ApiStack(Stack):
             api_key_required=True,  # Require API key for all requests
         )
 
-        # Create usage plan with throttling
+        # Create usage plan with throttling (for existing hardcoded key)
         usage_plan = self.rest_api.add_usage_plan(
             "UsagePlan",
             name="factchecker-usage-plan",
@@ -251,6 +286,33 @@ class ApiStack(Stack):
         usage_plan.add_api_key(api_key)
         usage_plan.add_api_stage(
             stage=self.rest_api.deployment_stage,
+        )
+        
+        # Grant API Gateway permissions for creating API keys and associating with usage plans
+        # These permissions are added here after rest_api is created so we can reference it
+        # Note: API Gateway API keys are account-level resources (double colon ::)
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "apigateway:POST",  # Create API key
+                    "apigateway:GET",   # Get API key
+                    "apigateway:PUT",   # Update API key
+                    "apigateway:PATCH", # Patch API key
+                ],
+                resources=[
+                    # Base resource for creating API keys (required for POST)
+                    f"arn:aws:apigateway:{self.region}::/apikeys",
+                    # Specific API key resources
+                    f"arn:aws:apigateway:{self.region}::/apikeys/*",
+                    # Usage plan resources
+                    f"arn:aws:apigateway:{self.region}::/usageplans",
+                    f"arn:aws:apigateway:{self.region}::/usageplans/*",
+                    # Usage plan key associations
+                    f"arn:aws:apigateway:{self.region}::/usageplans/*/keys",
+                    f"arn:aws:apigateway:{self.region}::/usageplans/*/keys/*",
+                ],
+            )
         )
 
         # Output the API Gateway endpoint (primary endpoint)

@@ -9,6 +9,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import Photos
+import AuthenticationServices
 
 // MARK: - Citation Model
 
@@ -74,6 +75,7 @@ extension String {
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: FactCheckViewModel
+    @StateObject private var authService = AuthService.shared
     @State private var selectedVideoItem: PhotosPickerItem? = nil
     @State private var selectedVideoData: Data? = nil
     @State private var selectedFailedJobId: String? = nil
@@ -82,8 +84,10 @@ struct ContentView: View {
     @State private var showPhotoPicker: Bool = false
     
     var body: some View {
-        NavigationView {
-            List {
+        Group {
+            if authService.isAuthenticated {
+                NavigationView {
+                List {
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
                     VStack(alignment: .leading, spacing: 8) {
@@ -139,6 +143,20 @@ struct ContentView: View {
             }
             .navigationTitle("")
             .toolbar {
+                // Settings menu (leading/left side)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button(role: .destructive, action: {
+                            authService.signOut()
+                        }) {
+                            Label("Logout", systemImage: "arrow.right.square")
+                        }
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+                
+                // Plus button (trailing/right side)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
@@ -185,7 +203,79 @@ struct ContentView: View {
                         }
                     }
                 }
+                }
             }
+            } else {
+                // Sign In Screen
+                SignInView(authService: authService)
+            }
+        }
+        .task {
+            // Verify API key on app launch if one exists
+            await authService.checkAuthenticationStatus()
+        }
+    }
+}
+
+// MARK: - Sign In View
+
+struct SignInView: View {
+    @ObservedObject var authService: AuthService
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            
+            // Centered content
+            VStack(spacing: 24) {
+                // App Logo/Icon
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.blue)
+                
+                Text("FactCheck")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Verify the facts in your videos")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                if authService.isLoading {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Setting things up...")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 16)
+                }
+            }
+            
+            Spacer()
+            
+            // Sign In with Apple Button at bottom
+            Button(action: {
+                authService.signInWithApple()
+            }) {
+                HStack {
+                    Image(systemName: "applelogo")
+                        .font(.system(size: 18))
+                    Text("Sign in with Apple")
+                        .font(.headline)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(authService.isLoading ? Color.gray : Color.black)
+                .cornerRadius(10)
+            }
+            .padding(.horizontal, 40)
+            .padding(.bottom, 40)
+            .disabled(authService.isLoading)
         }
     }
 }
@@ -498,7 +588,7 @@ struct JobCardView: View {
                     if isFailedDownloadSectionExpanded {
                         VStack(alignment: .leading, spacing: 12) {
                             // Upload video text
-                            Text("Download or Screen Record video to camera roll")
+                            Text("Download or screen record video to camera roll")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .allowsHitTesting(false)
@@ -769,7 +859,7 @@ struct VerdictBadge: View {
         HStack(spacing: 4) {
             Image(systemName: verdictIcon(for: verdict))
                 .font(.caption2)
-            Text(verdict.replacingOccurrences(of: "_", with: " ").capitalized)
+            Text(verdictDisplayText(for: verdict))
                 .font(.caption)
                 .fontWeight(.semibold)
         }
@@ -782,11 +872,13 @@ struct VerdictBadge: View {
     
     private func verdictColor(for verdict: String) -> Color {
         switch verdict.uppercased() {
-        case "TRUE":
+        case "TRUE", "SUPPORTED":
             return .green
-        case "FALSE":
+        case "FALSE", "NOT_SUPPORTED":
             return .red
-        case "PARTIALLY_TRUE":
+        case "PARTIALLY_TRUE", "PARTIALLY_SUPPORTED":
+            return .orange
+        case "MISLEADING":
             return .orange
         case "UNVERIFIABLE", "DISPUTED":
             return .yellow
@@ -799,18 +891,47 @@ struct VerdictBadge: View {
     
     private func verdictIcon(for verdict: String) -> String {
         switch verdict.uppercased() {
-        case "TRUE":
+        case "TRUE", "SUPPORTED":
             return "checkmark.circle.fill"
-        case "FALSE":
+        case "FALSE", "NOT_SUPPORTED":
             return "xmark.circle.fill"
-        case "PARTIALLY_TRUE":
+        case "PARTIALLY_TRUE", "PARTIALLY_SUPPORTED":
             return "exclamationmark.circle.fill"
+        case "MISLEADING":
+            return "exclamationmark.triangle.fill"
         case "UNVERIFIABLE", "DISPUTED":
             return "questionmark.circle.fill"
         case "NOT_FACTUAL":
             return "minus.circle.fill"
         default:
             return "circle.fill"
+        }
+    }
+    
+    private func verdictDisplayText(for verdict: String) -> String {
+        switch verdict.uppercased() {
+        case "TRUE":
+            return "True"
+        case "SUPPORTED":
+            return "Supported"
+        case "FALSE":
+            return "False"
+        case "NOT_SUPPORTED":
+            return "Not Supported"
+        case "PARTIALLY_TRUE":
+            return "Partially True"
+        case "PARTIALLY_SUPPORTED":
+            return "Partially Supported"
+        case "MISLEADING":
+            return "Misleading"
+        case "UNVERIFIABLE":
+            return "Unverifiable"
+        case "DISPUTED":
+            return "Disputed"
+        case "NOT_FACTUAL":
+            return "Not Factual"
+        default:
+            return verdict.replacingOccurrences(of: "_", with: " ").capitalized
         }
     }
 }
@@ -826,13 +947,13 @@ struct VerdictSummaryBadges: View {
     }
     
     private var summaryVerdict: String {
-        // Count verdicts
-        let trueCount = verdictCounts["TRUE"] ?? 0
-        let partiallyTrueCount = verdictCounts["PARTIALLY_TRUE"] ?? 0
-        let falseCount = verdictCounts["FALSE"] ?? 0
+        // Count verdicts (support both old and new terms)
+        let supportedCount = (verdictCounts["TRUE"] ?? 0) + (verdictCounts["SUPPORTED"] ?? 0)
+        let partiallySupportedCount = (verdictCounts["PARTIALLY_TRUE"] ?? 0) + (verdictCounts["PARTIALLY_SUPPORTED"] ?? 0)
+        let misleadingCount = verdictCounts["MISLEADING"] ?? 0
         
-        // Calculate numerator = (# True) + (# partially true)/2
-        let numerator = Double(trueCount) + Double(partiallyTrueCount) / 2.0
+        // Calculate numerator = (# supported) + (# partially supported)/2 + (# misleading)*0.25
+        let numerator = Double(supportedCount) + Double(partiallySupportedCount) / 2.0 + Double(misleadingCount) * 0.25
         
         // Calculate denominator = number of verdicts
         let denominator = Double(verifications.count)
@@ -846,19 +967,19 @@ struct VerdictSummaryBadges: View {
         // Calculate score = numerator / denominator
         let score = numerator / denominator
         
-        // Determine summary verdict based on score
+        // Determine summary verdict based on score (use new terms for output)
         if score == 1.0 {
-            if partiallyTrueCount > 0 {
-                return "MOSTLY_TRUE"
+            if partiallySupportedCount > 0 || misleadingCount > 0 {
+                return "MOSTLY_SUPPORTED"
             } else {
-                return "TRUE"
+                return "SUPPORTED"
             }
-        } else if score > 0.7 {
-            return "MOSTLY_TRUE"
-        } else if score > 0.5 {
-            return "PARTIALLY_TRUE"
+        } else if score > 0.65 {
+            return "MOSTLY_SUPPORTED"
+        } else if score > 0.45 {
+            return "PARTIALLY_SUPPORTED"
         } else {
-            return "NOT_TRUE"
+            return "NOT_SUPPORTED"
         }
     }
     
@@ -871,15 +992,15 @@ struct VerdictSummaryBadges: View {
     
     private func verdictColor(for verdict: String) -> Color {
         switch verdict.uppercased() {
-        case "TRUE":
+        case "TRUE", "SUPPORTED":
             return .green
-        case "MOSTLY_TRUE":
+        case "MOSTLY_TRUE", "MOSTLY_SUPPORTED":
             return .green.opacity(0.8)
-        case "FALSE":
+        case "FALSE", "NOT_SUPPORTED", "NOT_TRUE":
             return .red
-        case "NOT_TRUE":
-            return .red
-        case "PARTIALLY_TRUE":
+        case "PARTIALLY_TRUE", "PARTIALLY_SUPPORTED":
+            return .orange
+        case "MISLEADING":
             return .orange
         case "UNVERIFIABLE", "DISPUTED":
             return .yellow
@@ -892,12 +1013,14 @@ struct VerdictSummaryBadges: View {
     
     private func verdictIcon(for verdict: String) -> String {
         switch verdict.uppercased() {
-        case "TRUE", "MOSTLY_TRUE":
+        case "TRUE", "SUPPORTED", "MOSTLY_TRUE", "MOSTLY_SUPPORTED":
             return "checkmark.circle.fill"
-        case "FALSE", "NOT_TRUE":
+        case "FALSE", "NOT_SUPPORTED", "NOT_TRUE":
             return "xmark.circle.fill"
-        case "PARTIALLY_TRUE":
+        case "PARTIALLY_TRUE", "PARTIALLY_SUPPORTED":
             return "exclamationmark.circle.fill"
+        case "MISLEADING":
+            return "exclamationmark.triangle.fill"
         case "UNVERIFIABLE", "DISPUTED":
             return "questionmark.circle.fill"
         case "NOT_FACTUAL":
@@ -911,14 +1034,22 @@ struct VerdictSummaryBadges: View {
         switch verdict.uppercased() {
         case "TRUE":
             return "True"
+        case "SUPPORTED":
+            return "Supported"
         case "MOSTLY_TRUE":
             return "Mostly True"
+        case "MOSTLY_SUPPORTED":
+            return "Mostly Supported"
         case "FALSE":
             return "False"
-        case "NOT_TRUE":
-            return "Not True"
+        case "NOT_SUPPORTED", "NOT_TRUE":
+            return "Not Supported"
         case "PARTIALLY_TRUE":
             return "Partially True"
+        case "PARTIALLY_SUPPORTED":
+            return "Partially Supported"
+        case "MISLEADING":
+            return "Misleading"
         case "UNVERIFIABLE":
             return "Unverifiable"
         case "DISPUTED":

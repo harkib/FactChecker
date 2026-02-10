@@ -9,7 +9,7 @@ import asyncio
 if '/app' not in sys.path:
     sys.path.insert(0, '/app')
 
-from shared.sqs_client import receive_messages, delete_message, send_message
+from shared.sqs_client import receive_messages, delete_message
 from shared.database import init_db, sessionmaker, update_job_status_async
 from shared.logger import get_logger, bind_job_id
 from app.processor import download_video
@@ -45,20 +45,9 @@ async def process_message(message_body: dict, session):
     
     try:
         job_logger.info("Processing job: downloading video", video_url=video_url)
-        s3_key = await download_video(video_url, job_id, session)
-        job_logger.info("Successfully downloaded and uploaded video", s3_key=s3_key)
-        
-        # Send message to next queue (video-to-transcript)
-        next_queue_url = os.getenv("VIDEO_TO_TRANSCRIPT_QUEUE_URL")
-        if next_queue_url:
-            await send_message(next_queue_url, {
-                "job_id": job_id,
-                "video_s3_key": s3_key,
-            })
-            job_logger.info("Sent message to video-to-transcript queue")
-        else:
-            job_logger.warning("VIDEO_TO_TRANSCRIPT_QUEUE_URL not configured")
-        
+        await download_video(video_url, job_id, session)
+        job_logger.info("Successfully downloaded and uploaded video")
+        # Only S3 event sends to video-to-transcript; do not send from here
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))

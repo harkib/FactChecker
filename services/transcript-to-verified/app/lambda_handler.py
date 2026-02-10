@@ -12,7 +12,7 @@ if '/app' not in sys.path:
 # Import modules that don't depend on secrets
 from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
-from shared.database import get_sessionmaker, update_job_status_async, update_job_failed_async, JobStatus
+from shared.database import get_sessionmaker, get_job_async, update_job_status_async, update_job_failed_async, JobStatus
 from app.processor import extract_and_verify_claims
 
 # Initialize logger with resource name
@@ -68,7 +68,13 @@ async def process_message(message_body: dict, session) -> bool:
     if not job_id or not transcript_s3_key or not frames_s3_prefix:
         job_logger.warning("Invalid message: missing required fields")
         return False
-    
+
+    # Idempotency: skip if job already completed (e.g. redelivery or duplicate message)
+    job = await get_job_async(session, job_id)
+    if job and job.get("status") == JobStatus.COMPLETED.value:
+        job_logger.info("Job already completed, skipping reprocessing", job_id=job_id)
+        return True
+
     try:
         job_logger.info(
             "Processing job: extracting and verifying claims from transcript and frames",

@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
 from app.models import CreateJobRequest, CreateJobResponse, JobResponse, CreateUploadJobResponse, GetUploadUrlResponse
+from app.auth_models import AppleSignInRequest, AppleSignInResponse
 from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url, create_upload_job, generate_presigned_upload_url
+from app.auth import verify_apple_identity_token, create_api_gateway_api_key
 from app.migrations import run_migrations
 from shared.database import get_db, JobStatus, Job
 import uuid
@@ -483,6 +485,60 @@ async def get_upload_url(
     except Exception as e:
         job_logger.error("Failed to get upload URL", exc_info=True, error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get upload URL: {str(e)}")
+
+
+@app.post("/auth/apple-signin", response_model=AppleSignInResponse, status_code=200)
+async def apple_sign_in(request: AppleSignInRequest):
+    """Apple Sign In endpoint - verifies Apple token and returns API Gateway API key.
+    
+    This endpoint does not require authentication (no API key needed).
+    """
+    try:
+        logger.info("Apple Sign In request received")
+        
+        # Verify Apple identity token
+        token_claims = await verify_apple_identity_token(request.identity_token)
+        if not token_claims:
+            logger.warning("Apple identity token verification failed")
+            raise HTTPException(status_code=401, detail="Invalid Apple identity token")
+        
+        # Extract user identifier from token
+        user_id = token_claims.get("sub")
+        if not user_id:
+            logger.warning("Token missing user identifier")
+            raise HTTPException(status_code=401, detail="Token missing user identifier")
+        
+        logger.debug("Apple identity token verified", user_id=user_id)
+        
+        # Get API Gateway configuration from environment
+        api_gateway_rest_api_id = os.getenv("API_GATEWAY_REST_API_ID")
+        usage_plan_id = os.getenv("API_GATEWAY_USAGE_PLAN_ID")
+        
+        if not api_gateway_rest_api_id or not usage_plan_id:
+            logger.error("API Gateway configuration missing", 
+                        has_rest_api_id=bool(api_gateway_rest_api_id),
+                        has_usage_plan_id=bool(usage_plan_id))
+            raise HTTPException(status_code=500, detail="API Gateway configuration missing")
+        
+        # Create API Gateway API key
+        api_key_value = await create_api_gateway_api_key(
+            api_gateway_rest_api_id=api_gateway_rest_api_id,
+            usage_plan_id=usage_plan_id,
+            description=f"API key for Apple user {user_id}"
+        )
+        
+        if not api_key_value:
+            logger.error("Failed to create API Gateway API key")
+            raise HTTPException(status_code=500, detail="Failed to create API key")
+        
+        logger.info("API key created successfully for Apple Sign In", user_id=user_id)
+        return AppleSignInResponse(auth_key=api_key_value)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error processing Apple Sign In", exc_info=True, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.get("/health")

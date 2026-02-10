@@ -13,7 +13,7 @@ Output JSON schema:
   "verifications": [
     {
       "claim": "string",
-      "verdict": "TRUE|FALSE|PARTIALLY_TRUE|UNVERIFIABLE|DISPUTED|NOT_FACTUAL",
+      "verdict": "SUPPORTED|NOT_SUPPORTED|PARTIALLY_SUPPORTED|MISLEADING|UNVERIFIABLE|DISPUTED|NOT_FACTUAL",
       "rationale": "string",
     }
   ]
@@ -33,12 +33,13 @@ Rules for extracting claims:
 - Consider both the transcript text and any visual information from the images when extracting claims.
 
 Rules for verifying claims:
-- Determine verdict: TRUE, FALSE, PARTIALLY_TRUE, UNVERIFIABLE, DISPUTED, NOT_FACTUAL
-    - TRUE = Sufficient evidence to support the claim.
-    - FALSE = Insufficient evidence to support the claim.
-    - PARTIALLY_TRUE = Some evidence supports the claim, but not enough to be fully TRUE.
-    - DISPUTED = Evidence conflicts, need more information to determine the truth of the claim.
-    - UNVERIFIABLE = Insufficient information to determine the truth of the claim.
+- Determine verdict: SUPPORTED, NOT_SUPPORTED, PARTIALLY_SUPPORTED, MISLEADING, UNVERIFIABLE, DISPUTED, NOT_FACTUAL
+    - SUPPORTED = Sufficient evidence supports the claim.
+    - NOT_SUPPORTED = Insufficient evidence supports the claim.
+    - PARTIALLY_SUPPORTED = Some evidence supports the claim, but not enough to be fully supported.
+    - MISLEADING = The claim is technically accurate but omits context or presents information in a way that could deceive.
+    - DISPUTED = Evidence conflicts, need more information to determine.
+    - UNVERIFIABLE = Insufficient information to determine.
     - NOT_FACTUAL = The claim is not factual, it is an opinion or prediction.
 - Provide a rationale for the verdict
 - Do not fabricate citations or details.
