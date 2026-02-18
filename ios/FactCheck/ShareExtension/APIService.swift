@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import Security
 
 enum APIError: LocalizedError {
     case invalidURL
@@ -35,8 +36,12 @@ class APIService {
     static let shared = APIService()
     
     // API Configuration
-    static let apiKey = "d6dbmgOaYn42U3AiHgIbg6FrXEc0ujeakhzi75Ud"
-    var baseURL: String = "https://qlnqmqi6qd.execute-api.us-east-1.amazonaws.com/prod"
+    var baseURL: String = "https://td14m345de.execute-api.us-east-1.amazonaws.com/prod"
+    
+    // Keychain keys (must match AuthService in main app)
+    private let apiKeyKeychainKey = "com.factcheck.apiKey"
+    private let apiKeyService = "FactCheckAPI"
+    private let keychainAccessGroup = "group.HarkiBains.FactCheck"
     
     // Client ID (IDFV) - cached for performance
     private static let clientIDKey = "FactCheckClientID"
@@ -65,8 +70,34 @@ class APIService {
         return fallbackID
     }
     
+    /// Retrieve API key from shared Keychain (stored by main app via AuthService)
+    private func getAPIKey() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: apiKeyService,
+            kSecAttrAccount as String: apiKeyKeychainKey,
+            kSecAttrAccessGroup as String: keychainAccessGroup,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        if status == errSecSuccess,
+           let data = result as? Data,
+           let apiKey = String(data: data, encoding: .utf8) {
+            return apiKey
+        }
+        return nil
+    }
+    
     private func addAPIKey(to request: inout URLRequest) {
-        request.setValue(APIService.apiKey, forHTTPHeaderField: "X-API-Key")
+        if let apiKey = getAPIKey() {
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        } else {
+            print("ShareExtension: No API key found in Keychain - user may need to sign in via main app")
+        }
     }
     
     private func addClientID(to request: inout URLRequest) {

@@ -57,7 +57,30 @@ def add_citations(response):
 
     return text
 
-
+# Gather more details from the Gemini response for error logging
+def get_gemini_debug_info(response):
+    info = {}
+    try:
+        info["raw_text"] = getattr(response, "text", None)
+        info["candidates_count"] = len(getattr(response, "candidates", []))
+        # Add errors or safety feedback if present
+        if hasattr(response, "prompt_feedback"):
+            info["prompt_feedback"] = str(getattr(response, "prompt_feedback"))
+        if hasattr(response, "candidates"):
+            info["candidates"] = [
+                {
+                    "finish_reason": getattr(c, "finish_reason", None),
+                    "safety_ratings": getattr(c, "safety_ratings", None),
+                    "safety_feedback": getattr(c, "safety_feedback", None)
+                }
+                for c in response.candidates or []
+            ]
+        info["grounding_metadata"] = getattr(response, "grounding_metadata", None)
+        info["response"] = str(response)
+    except Exception as e:
+        info["gemini_debug_info_exception"] = str(e)
+    return info
+    
 async def _download_transcript_and_frames(
     transcript_s3_key: str,
     frames_s3_prefix: str,
@@ -206,12 +229,24 @@ async def extract_and_verify_claims_gemini(
     
     extraction_response = await asyncio.to_thread(generate_sync)
     extraction_text = add_citations(extraction_response)
+
+    if extraction_text is None or extraction_text.strip() == "":
+        logger.error(
+            "Invalid response text (empty)",
+            extraction_text=extraction_text,
+            gemini_response_debug=get_gemini_debug_info(extraction_response)
+        )
+        raise ValueError(f"Invalid response text: {extraction_text}")
     
     # Extract response text
     l_idx = extraction_text.find('{')
     r_idx = extraction_text.rfind('}')
     if l_idx == -1 or r_idx == -1:
-        logger.error("Invalid response text (not json)", extraction_text=extraction_text, response_text= extraction_response.text)
+        logger.error(
+            "Invalid response text (not json)",
+            extraction_text=extraction_text,
+            gemini_response_debug=get_gemini_debug_info(extraction_response)
+        )
         raise ValueError(f"Invalid response text: {extraction_text}")
     extraction_output = extraction_text[l_idx:r_idx+1]
     
@@ -220,7 +255,7 @@ async def extract_and_verify_claims_gemini(
     
     # Validate structure
     if "title" not in result_data or "verifications" not in result_data:
-        logger.error("Response missing required fields", result_data=result_data)
+        logger.error("Response missing required fields", result_data=result_data, gemini_response_debug=get_gemini_debug_info(extraction_response))
         raise ValueError("Response missing required fields: title and verifications")
     
     return result_data

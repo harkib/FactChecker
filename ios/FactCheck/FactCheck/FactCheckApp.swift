@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct FactCheckApp: App {
+    @UIApplicationDelegateAdaptor(PushNotificationAppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = FactCheckViewModel()
     
     init() {
@@ -32,6 +34,15 @@ struct FactCheckApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(viewModel)
+                .onAppear {
+                    PushNotificationAppDelegate.requestPermissionAndRegisterForRemoteNotifications()
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    // Re-register when app becomes active to refresh token (e.g. after sandbox fix)
+                    if newPhase == .active {
+                        PushNotificationAppDelegate.requestPermissionAndRegisterForRemoteNotifications()
+                    }
+                }
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }

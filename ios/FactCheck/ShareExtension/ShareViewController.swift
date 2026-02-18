@@ -53,8 +53,8 @@ class ShareViewController: UIViewController {
         
         view.addSubview(statusStackView)
         NSLayoutConstraint.activate([
-            successImageView.widthAnchor.constraint(equalToConstant: 28),
-            successImageView.heightAnchor.constraint(equalToConstant: 28),
+            successImageView.widthAnchor.constraint(equalToConstant: 48),
+            successImageView.heightAnchor.constraint(equalToConstant: 48),
             statusStackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             statusStackView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             statusStackView.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
@@ -172,6 +172,8 @@ class ShareViewController: UIViewController {
     private func showSuccess(_ message: String) {
         successImageView.isHidden = false
         statusLabel.text = message
+        statusStackView.axis = .vertical
+        statusStackView.spacing = 12
     }
     
     private func showError(_ message: String) {

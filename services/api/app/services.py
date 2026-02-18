@@ -9,7 +9,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from shared.database import create_job_async, get_job_async, update_job_status_async, update_job_failed_async, get_jobs_by_client_id_async, JobStatus, Job
+from shared.database import (
+    create_job_async,
+    get_job_async,
+    update_job_status_async,
+    update_job_failed_async,
+    get_jobs_by_client_id_async,
+    upsert_device_token_async,
+    JobStatus,
+    Job,
+)
 import uuid
 from shared.logger import get_logger, bind_job_id
 import aioboto3
@@ -167,4 +176,48 @@ async def generate_presigned_upload_url(bucket_name: str, s3_key: str, expiratio
     except Exception as e:
         logger.error("Unexpected error generating presigned upload URL", bucket=bucket_name, key=s3_key, error=str(e))
         return None
+
+
+async def register_device_token(
+    db: AsyncSession, client_id: str, device_token: str, sandbox: bool = False
+) -> None:
+    """Register a device token for push notifications: create SNS platform endpoint and store in DB.
+
+    Args:
+        db: Database session
+        client_id: Client ID (IDFV from iOS app)
+        device_token: APNs device token as hex string
+        sandbox: If True, use APNS_SANDBOX platform (Xcode debug builds). Default False for production.
+
+    Raises:
+        ValueError: If SNS platform ARN is not set or CreatePlatformEndpoint fails
+    """
+    if sandbox:
+        platform_arn = os.getenv("SNS_PLATFORM_APPLICATION_ARN_SANDBOX")
+    else:
+        platform_arn = os.getenv("SNS_PLATFORM_APPLICATION_ARN")
+    if not platform_arn:
+        env_key = "SNS_PLATFORM_APPLICATION_ARN_SANDBOX" if sandbox else "SNS_PLATFORM_APPLICATION_ARN"
+        logger.error(f"{env_key} not configured")
+        raise ValueError(f"{env_key} not configured")
+
+    session = aioboto3.Session()
+    async with session.client("sns", region_name=os.getenv("AWS_REGION", "us-east-1")) as sns_client:
+        try:
+            logger.info("Creating platform endpoint", platform_arn=platform_arn, sandbox=sandbox)        
+            response = await sns_client.create_platform_endpoint(
+                PlatformApplicationArn=platform_arn,
+                Token=device_token,
+            )
+            endpoint_arn = response.get("EndpointArn")
+            if not endpoint_arn:
+                raise ValueError("CreatePlatformEndpoint did not return EndpointArn")
+        except ClientError as e:
+            logger.error("SNS CreatePlatformEndpoint failed", error=str(e))
+            raise ValueError(
+                f"Failed to register device with SNS: {e.response.get('Error', {}).get('Message', str(e))}"
+            ) from e
+
+    await upsert_device_token_async(db, client_id, device_token, sns_endpoint_arn=endpoint_arn)
+    logger.info("Device token registered", client_id=client_id, has_endpoint_arn=bool(endpoint_arn), sandbox=sandbox)
 

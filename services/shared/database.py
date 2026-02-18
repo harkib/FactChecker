@@ -45,6 +45,18 @@ class Job(Base):
     failed = Column(Boolean, nullable=True, default=False)
 
 
+class DeviceToken(Base):
+    """SQLAlchemy model for device_tokens table (push notification registration)."""
+    __tablename__ = "device_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    client_id = Column(String(255), nullable=False, index=True)
+    device_token = Column(Text, nullable=False)
+    sns_endpoint_arn = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
 # Module-level database configuration (lazy initialization)
 _engine: Optional[AsyncEngine] = None
 _sessionmaker: Optional[async_sessionmaker] = None
@@ -316,3 +328,65 @@ async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, lim
         }
         for job in jobs
     ]
+
+
+async def upsert_device_token_async(
+    session: AsyncSession,
+    client_id: str,
+    device_token: str,
+    sns_endpoint_arn: Optional[str] = None,
+) -> None:
+    """Insert or update device token for a client (async, requires session).
+    If a row with same client_id and device_token exists, update sns_endpoint_arn and updated_at.
+    """
+    stmt = select(DeviceToken).where(
+        DeviceToken.client_id == client_id,
+        DeviceToken.device_token == device_token,
+    )
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row:
+        row.sns_endpoint_arn = sns_endpoint_arn
+        await session.commit()
+    else:
+        session.add(
+            DeviceToken(
+                client_id=client_id,
+                device_token=device_token,
+                sns_endpoint_arn=sns_endpoint_arn,
+            )
+        )
+        await session.commit()
+
+
+async def get_device_tokens_by_client_id_async(
+    session: AsyncSession, client_id: str
+) -> List[Dict[str, Any]]:
+    """Get all device token rows for a client (async, requires session).
+    Returns list of dicts with sns_endpoint_arn (and device_token); only rows with sns_endpoint_arn are useful for SNS Publish.
+    """
+    stmt = select(DeviceToken).where(DeviceToken.client_id == client_id)
+    result = await session.execute(stmt)
+    rows = result.scalars().all()
+    return [
+        {
+            "client_id": r.client_id,
+            "device_token": r.device_token,
+            "sns_endpoint_arn": r.sns_endpoint_arn,
+        }
+        for r in rows
+    ]
+
+
+async def invalidate_device_token_by_endpoint_arn_async(
+    session: AsyncSession, sns_endpoint_arn: str
+) -> None:
+    """Clear sns_endpoint_arn for a disabled/invalid endpoint so we stop sending to it.
+    The user can re-register on next app launch to get a fresh endpoint.
+    """
+    stmt = select(DeviceToken).where(DeviceToken.sns_endpoint_arn == sns_endpoint_arn)
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row:
+        row.sns_endpoint_arn = None
+        await session.commit()

@@ -1,4 +1,6 @@
 """FastAPI REST API service for fact-checking jobs."""
+from base64 import decode
+from codecs import utf_16_be_decode
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -16,9 +18,9 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
-from app.models import CreateJobRequest, CreateJobResponse, JobResponse, CreateUploadJobResponse, GetUploadUrlResponse
+from app.models import CreateJobRequest, CreateJobResponse, JobResponse, CreateUploadJobResponse, GetUploadUrlResponse, RegisterDeviceTokenRequest
 from app.auth_models import AppleSignInRequest, AppleSignInResponse
-from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url, create_upload_job, generate_presigned_upload_url
+from app.services import create_fact_check_job, get_job_by_id, get_jobs_by_client_id, generate_presigned_frame_url, create_upload_job, generate_presigned_upload_url, register_device_token
 from app.auth import verify_apple_identity_token, create_api_gateway_api_key
 from app.migrations import run_migrations
 from shared.database import get_db, JobStatus, Job
@@ -324,6 +326,32 @@ async def create_upload_job_endpoint(
     except Exception as e:
         logger.error("Failed to create upload job", exc_info=True, error=str(e), client_id=client_id)
         raise HTTPException(status_code=500, detail=f"Failed to create upload job: {str(e)}")
+
+
+@app.post("/device-token", status_code=204)
+async def register_device_token_endpoint(
+    request: RegisterDeviceTokenRequest,
+    db: AsyncSession = Depends(get_db),
+    client_id: Optional[str] = Depends(get_client_id),
+):
+    """Register device token for push notifications. Requires X-Client-ID header."""
+    try:
+        if not client_id:
+            raise HTTPException(status_code=400, detail="X-Client-ID header is required")
+        if not request.device_token or not request.device_token.strip():
+            raise HTTPException(status_code=400, detail="device_token is required")
+        await register_device_token(
+            db, client_id, request.device_token.strip(), sandbox=request.sandbox
+        )
+        return None
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.warning("Device token registration failed", error=str(e), client_id=client_id)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to register device token", exc_info=True, error=str(e), client_id=client_id)
+        raise HTTPException(status_code=500, detail="Failed to register device token")
 
 
 @app.get("/jobs/{job_id}", response_model=JobResponse)

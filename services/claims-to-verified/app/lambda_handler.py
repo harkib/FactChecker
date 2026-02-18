@@ -12,7 +12,16 @@ if '/app' not in sys.path:
 # Import modules that don't depend on secrets
 from shared.logger import get_logger, bind_job_id
 from shared.secrets import initialize_secrets
-from shared.database import get_sessionmaker, update_job_status_async, update_job_failed_async, update_job_verified_claims_async, JobStatus
+from shared.database import (
+    get_sessionmaker,
+    update_job_status_async,
+    update_job_failed_async,
+    update_job_verified_claims_async,
+    get_job_async,
+    get_device_tokens_by_client_id_async,
+    invalidate_device_token_by_endpoint_arn_async,
+    JobStatus,
+)
 from app.processor import verify_claims
 
 # Initialize logger with resource name
@@ -25,6 +34,66 @@ def get_openai_api_key():
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set")
     return api_key
+
+
+async def _send_push_notification_async(job_id: str, session) -> None:
+    """Load job client_id, get device tokens, send SNS Publish to each endpoint. Does not raise."""
+    import boto3
+    job_logger = bind_job_id(logger, job_id)
+    try:
+        job = await get_job_async(session, job_id)
+        if not job:
+            return
+        client_id = job.get("client_id")
+        if not client_id:
+            return
+        tokens = await get_device_tokens_by_client_id_async(session, client_id)
+        endpoints = [t["sns_endpoint_arn"] for t in tokens if t.get("sns_endpoint_arn")]
+        if not endpoints:
+            job_logger.debug("No device endpoints for push notification", client_id=client_id)
+            return
+        # APNs payload: aps.alert + optional job_id for deep link
+        message_dict = {
+            "aps": {
+                "alert": {"title": "Fact check ready", "body": "Your fact check is complete."},
+                "sound": "default",
+            },
+            "job_id": job_id,
+        }
+        message_json = json.dumps(message_dict)
+        # SNS picks APNS or APNS_SANDBOX based on endpoint platform; both keys need the same payload
+        sns_message = json.dumps({"APNS": message_json, "APNS_SANDBOX": message_json})
+        job_logger.info(
+            "Sending push notification",
+            endpoints_count=len(endpoints),
+            payload=message_dict,
+        )
+        message_attrs = {
+            "AWS.SNS.MOBILE.APNS.PUSH_TYPE": {"DataType": "String", "StringValue": "alert"},
+            "AWS.SNS.MOBILE.APNS.PRIORITY": {"DataType": "String", "StringValue": "10"},
+        }
+        region = os.getenv("AWS_REGION", "us-east-1")
+        sns = boto3.client("sns", region_name=region)
+        for arn in endpoints:
+            try:
+                sns.publish(
+                    TargetArn=arn,
+                    Message=sns_message,
+                    MessageStructure="json",
+                    MessageAttributes=message_attrs,
+                )
+                job_logger.debug("Push sent", endpoint_arn=arn)
+            except Exception as e:
+                job_logger.warning("SNS Publish failed for endpoint", endpoint_arn=arn, error=str(e))
+                err_str = str(e)
+                if "EndpointDisabled" in err_str or "InvalidParameter" in err_str:
+                    try:
+                        await invalidate_device_token_by_endpoint_arn_async(session, arn)
+                        job_logger.info("Invalidated disabled endpoint", endpoint_arn=arn)
+                    except Exception as inv_err:
+                        job_logger.warning("Failed to invalidate endpoint", endpoint_arn=arn, error=str(inv_err))
+    except Exception as e:
+        job_logger.warning("Push notification failed", error=str(e))
 
 
 async def process_message(message_body: dict, session) -> bool:
@@ -50,6 +119,7 @@ async def process_message(message_body: dict, session) -> bool:
             },
             "claim_results": []
         })
+        await _send_push_notification_async(job_id, session)
         return True
     
     try:
@@ -65,7 +135,7 @@ async def process_message(message_body: dict, session) -> bool:
         
         # Update job with verified claims and mark as completed (async)
         await update_job_verified_claims_async(session, job_id, verified_claims)
-        
+        await _send_push_notification_async(job_id, session)
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))

@@ -5,6 +5,7 @@ from stacks.ecr_stack import EcrStack
 from stacks.database_stack import DatabaseStack
 from stacks.storage_stack import StorageStack
 from stacks.queue_stack import QueueStack
+from stacks.sns_push_stack import SnsPushStack
 from stacks.api_stack import ApiStack
 from stacks.worker_stacks import WorkerStacks
 
@@ -47,7 +48,12 @@ url_to_video_queue_url = queue_stack.url_to_video_queue.queue_url
 transcript_to_claims_queue_url = queue_stack.transcript_to_claims_queue.queue_url
 claims_to_verified_queue_url = queue_stack.claims_to_verified_queue.queue_url
 
-# Create API stack
+# Create SNS push stack (APNs for iOS). Requires secret factchecker/apns-credentials.
+sns_push_stack = SnsPushStack(app, "SnsPushStack")
+sns_platform_application_arn = sns_push_stack.platform_application_arn
+sns_platform_application_arn_sandbox = sns_push_stack.platform_application_arn_sandbox
+
+# Create API stack (depends on SNS stack for push notification ARN)
 api_stack = ApiStack(
     app,
     "ApiStack",
@@ -59,6 +65,8 @@ api_stack = ApiStack(
     assets_bucket_name=assets_bucket_name,
     url_to_video_queue_url=url_to_video_queue_url,
     api_repository=ecr_stack.api_repo,
+    sns_platform_application_arn=sns_platform_application_arn,
+    sns_platform_application_arn_sandbox=sns_platform_application_arn_sandbox,
 )
 
 # Create worker stacks
@@ -85,7 +93,10 @@ worker_stacks = WorkerStacks(
     transcript_to_claims_queue_arn=queue_stack.transcript_to_claims_queue.queue_arn,
     claims_to_verified_queue_arn=queue_stack.claims_to_verified_queue.queue_arn,
     ecr_repositories=ecr_stack.repositories,
+    sns_platform_application_arn=sns_platform_application_arn,
 )
+api_stack.node.add_dependency(sns_push_stack)
+worker_stacks.node.add_dependency(sns_push_stack)
 
 app.synth()
 

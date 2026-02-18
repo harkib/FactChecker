@@ -29,6 +29,8 @@ class ApiStack(Stack):
         assets_bucket_name: str,
         url_to_video_queue_url: str,
         api_repository: ecr.IRepository,
+        sns_platform_application_arn: str = None,
+        sns_platform_application_arn_sandbox: str = None,
         **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -73,6 +75,17 @@ class ApiStack(Stack):
                 ],
             )
         )
+
+        # Grant SNS permissions for push notification device registration (prod + sandbox)
+        sns_arns = [a for a in (sns_platform_application_arn, sns_platform_application_arn_sandbox) if a]
+        if sns_arns:
+            task_role.add_to_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=["sns:CreatePlatformEndpoint"],
+                    resources=sns_arns,
+                )
+            )
         
         # Note: API Gateway permissions will be added after rest_api is created
         # This is a placeholder - actual permissions added below after rest_api creation
@@ -166,6 +179,9 @@ class ApiStack(Stack):
                     "AWS_REGION": self.region,
                     "API_GATEWAY_REST_API_ID": self.rest_api.rest_api_id,
                     "API_GATEWAY_USAGE_PLAN_ID": basic_user_usage_plan.usage_plan_id,
+                    "APPLE_CLIENT_ID": "HarkiBains.FactCheck",
+                    **({"SNS_PLATFORM_APPLICATION_ARN": sns_platform_application_arn} if sns_platform_application_arn else {}),
+                    **({"SNS_PLATFORM_APPLICATION_ARN_SANDBOX": sns_platform_application_arn_sandbox} if sns_platform_application_arn_sandbox else {}),
                 },
                 secrets={
                     "DB_USER": ecs.Secret.from_secrets_manager(

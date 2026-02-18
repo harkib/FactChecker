@@ -42,3 +42,9 @@ class GetUploadUrlResponse(BaseModel):
     upload_url: str
     expires_in: int
 
+
+class RegisterDeviceTokenRequest(BaseModel):
+    """Request body for POST /device-token (push notification registration)."""
+    device_token: str
+    sandbox: bool = False  # True for Xcode debug builds (APNS_SANDBOX)
+

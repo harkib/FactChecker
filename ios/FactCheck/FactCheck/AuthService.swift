@@ -42,6 +42,7 @@ class AuthService: NSObject, ObservableObject {
     
     private let apiKeyKeychainKey = "com.factcheck.apiKey"
     private let apiKeyService = "FactCheckAPI"
+    private let keychainAccessGroup = "group.HarkiBains.FactCheck"
     
     // Retain the authorization controller to prevent deallocation before delegate callbacks
     private var authorizationController: ASAuthorizationController?
@@ -68,6 +69,7 @@ class AuthService: NSObject, ObservableObject {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: apiKeyService,
             kSecAttrAccount as String: apiKeyKeychainKey,
+            kSecAttrAccessGroup as String: keychainAccessGroup,
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
@@ -83,9 +85,29 @@ class AuthService: NSObject, ObservableObject {
         }
     }
     
-    /// Retrieve API key from Keychain
+    /// Retrieve API key from Keychain (shared with Share Extension via App Group)
     func getAPIKey() -> String? {
-        let query: [String: Any] = [
+        // Try shared keychain first (with App Group)
+        let sharedQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: apiKeyService,
+            kSecAttrAccount as String: apiKeyKeychainKey,
+            kSecAttrAccessGroup as String: keychainAccessGroup,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(sharedQuery as CFDictionary, &result)
+        
+        if status == errSecSuccess,
+           let data = result as? Data,
+           let apiKey = String(data: data, encoding: .utf8) {
+            return apiKey
+        }
+        
+        // Migration: try legacy keychain (stored before App Group was added)
+        let legacyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: apiKeyService,
             kSecAttrAccount as String: apiKeyKeychainKey,
@@ -93,12 +115,19 @@ class AuthService: NSObject, ObservableObject {
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
         
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        var legacyResult: AnyObject?
+        let legacyStatus = SecItemCopyMatching(legacyQuery as CFDictionary, &legacyResult)
         
-        if status == errSecSuccess,
-           let data = result as? Data,
+        if legacyStatus == errSecSuccess,
+           let data = legacyResult as? Data,
            let apiKey = String(data: data, encoding: .utf8) {
+            _ = storeAPIKey(apiKey)  // Migrate to shared keychain
+            let deleteQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: apiKeyService,
+                kSecAttrAccount as String: apiKeyKeychainKey
+            ]
+            SecItemDelete(deleteQuery as CFDictionary)  // Remove legacy
             return apiKey
         }
         
@@ -110,7 +139,8 @@ class AuthService: NSObject, ObservableObject {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: apiKeyService,
-            kSecAttrAccount as String: apiKeyKeychainKey
+            kSecAttrAccount as String: apiKeyKeychainKey,
+            kSecAttrAccessGroup as String: keychainAccessGroup
         ]
         
         SecItemDelete(query as CFDictionary)

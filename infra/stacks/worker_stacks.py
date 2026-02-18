@@ -47,9 +47,11 @@ class WorkerStacks(Stack):
         transcript_to_claims_queue_arn: str = None,
         claims_to_verified_queue_arn: str = None,
         ecr_repositories: Dict[str, ecr.IRepository] = None,
+        sns_platform_application_arn: str = None,
         **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+        self.sns_platform_application_arn = sns_platform_application_arn
 
         # Store database endpoint and instance for use in worker services
         self.database_endpoint = database_endpoint
@@ -185,6 +187,7 @@ class WorkerStacks(Stack):
                 memory=2048,
                 repository=ecr_repositories["transcript-to-verified"],
                 gemini_secret=gemini_secret,  # Pass Gemini secret for transcript-to-verified
+                grant_sns_publish=True,  # Send push notifications when job completes
             )
 
         # Note: S3 Video Event Handler Lambda is now created in StorageStack
@@ -350,6 +353,7 @@ class WorkerStacks(Stack):
         memory: int,
         repository: ecr.IRepository,
         gemini_secret: secretsmanager.ISecret = None,
+        grant_sns_publish: bool = False,
     ):
         """Create a Lambda worker function triggered by SQS."""
         # Create Lambda execution role
@@ -443,6 +447,16 @@ class WorkerStacks(Stack):
                 resources=secret_resources,
             )
         )
+
+        # Grant SNS Publish for push notifications (e.g. transcript-to-verified on job completion)
+        if grant_sns_publish:
+            lambda_role.add_to_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=["sns:Publish"],
+                    resources=["*"],
+                )
+            )
 
         # Add database connection info to environment
         env = {

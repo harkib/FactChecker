@@ -36,7 +36,7 @@ class APIService {
     static let shared = APIService()
     
     // API Configuration
-    var baseURL: String = "https://qlnqmqi6qd.execute-api.us-east-1.amazonaws.com/prod"
+    var baseURL: String = "https://td14m345de.execute-api.us-east-1.amazonaws.com/prod"
     
     // Client ID (IDFV) - cached for performance
     private static let clientIDKey = "FactCheckClientID"
@@ -89,6 +89,35 @@ class APIService {
         }
         // Fall back to string representation
         return String(data: data, encoding: .utf8) ?? "Unknown error"
+    }
+    
+    // MARK: - Push Notification (Device Token)
+    
+    /// Register device token with the backend for push notifications. Called when APNs returns a device token.
+    func registerDeviceToken(deviceTokenHex: String) async {
+        guard let url = URL(string: "\(baseURL)/device-token") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAPIKey(to: &request)
+        addClientID(to: &request)
+        var body: [String: Any] = ["device_token": deviceTokenHex]
+        #if DEBUG || APNS_SANDBOX
+        body["sandbox"] = true
+        #endif
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else { return }
+        request.httpBody = bodyData
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else { return }
+            if (200...299).contains(httpResponse.statusCode) {
+                // Registered successfully (204 or 2xx)
+            } else {
+                print("Device token registration failed: \(httpResponse.statusCode)")
+            }
+        } catch {
+            print("Device token registration error: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Create Job
