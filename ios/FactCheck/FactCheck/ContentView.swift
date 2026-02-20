@@ -628,7 +628,7 @@ struct JobCardView: View {
             .onTapGesture {
                 onTap()
             }
-            .onAppear {
+            .task(id: "\(job.id)-\(job.status)") {
                 loadThumbnail()
             }
             
@@ -763,6 +763,7 @@ struct JobCardView: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                     }
+                    .buttonStyle(PlainButtonStyle())
                     .padding(.top, 8)
                 }
             }
