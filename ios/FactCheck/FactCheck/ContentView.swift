@@ -408,6 +408,7 @@ struct JobCardView: View {
     let viewModel: FactCheckViewModel
     let onTap: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
     @State private var thumbnailURL: URL?
     @State private var cachedThumbnail: UIImage?
     @State private var isLoadingThumbnail = false
@@ -694,9 +695,9 @@ struct JobCardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -771,6 +772,10 @@ struct VerificationCardView: View {
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(.separator), lineWidth: 1)
+        )
     }
 }
 
