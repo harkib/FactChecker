@@ -528,6 +528,7 @@ struct JobCardView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     HStack(spacing: 8) {
                         // Status Badge (only show if not completed)
@@ -541,6 +542,7 @@ struct JobCardView: View {
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer()
                 
@@ -723,6 +725,8 @@ struct VerificationCardView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
                     }
                     
                     HStack {
@@ -730,6 +734,7 @@ struct VerificationCardView: View {
                         Spacer()
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer()
                 
