@@ -23,7 +23,10 @@ class FactCheckViewModel: ObservableObject {
     @Published var isUploading: Bool = false
     @Published var uploadProgress: Double = 0.0
     @Published var showVideoPicker: Bool = false
+    @Published var hasMoreJobs: Bool = true
+    @Published var isLoadingMore: Bool = false
     
+    private let jobsPageSize = 20
     private var jobsPollingTask: Task<Void, Never>?
     private let pollingInterval: TimeInterval = 5.0
     private nonisolated(unsafe) var jobsPollingTaskNonisolated: Task<Void, Never>?
@@ -113,8 +116,11 @@ class FactCheckViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let fetchedJobs = try await apiService.getJobs()
-            jobs = fetchedJobs
+            let fetchedJobs = try await apiService.getJobs(limit: jobsPageSize, offset: 0)
+            let freshIds = Set(fetchedJobs.map(\.id))
+            let olderLoaded = jobs.filter { !freshIds.contains($0.id) }
+            jobs = fetchedJobs + olderLoaded
+            hasMoreJobs = olderLoaded.isEmpty ? (fetchedJobs.count == jobsPageSize) : hasMoreJobs
             isRefreshing = false
         } catch let error as APIError {
             errorMessage = error.errorDescription ?? error.localizedDescription
@@ -123,6 +129,22 @@ class FactCheckViewModel: ObservableObject {
             errorMessage = "Failed to fetch jobs: \(error.localizedDescription)"
             isRefreshing = false
         }
+    }
+    
+    func loadMoreJobs() async {
+        guard !isLoadingMore, hasMoreJobs else { return }
+        isLoadingMore = true
+        
+        do {
+            let fetchedJobs = try await apiService.getJobs(limit: jobsPageSize, offset: jobs.count)
+            let existingIds = Set(jobs.map(\.id))
+            let newJobs = fetchedJobs.filter { !existingIds.contains($0.id) }
+            jobs.append(contentsOf: newJobs)
+            hasMoreJobs = fetchedJobs.count == jobsPageSize
+        } catch {
+            // Optionally set errorMessage; for load-more we often keep UI as-is
+        }
+        isLoadingMore = false
     }
     
     // MARK: - Job Expansion
@@ -235,6 +257,7 @@ class FactCheckViewModel: ObservableObject {
         stopJobsPolling()
         videoURL = ""
         jobs = []
+        hasMoreJobs = true
         expandedJobIds = []
         expandedVerificationIds = []
         isLoading = false

@@ -200,8 +200,13 @@ class APIService {
     
     // MARK: - Get Jobs
     
-    func getJobs() async throws -> [JobResponse] {
-        guard let url = URL(string: "\(baseURL)/jobs") else {
+    func getJobs(limit: Int = 20, offset: Int = 0) async throws -> [JobResponse] {
+        var components = URLComponents(string: "\(baseURL)/jobs")
+        components?.queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset)),
+        ]
+        guard let url = components?.url else {
             throw APIError.invalidURL
         }
         

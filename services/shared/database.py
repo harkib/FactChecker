@@ -193,8 +193,8 @@ async def update_job_failed_async(session: AsyncSession, job_id: str, failed: bo
         raise
 
 
-async def update_job_video_s3_key_async(session: AsyncSession, job_id: str, s3_key: str):
-    """Update job with video S3 key (async, requires session)."""
+async def update_job_video_s3_key_async(session: AsyncSession, job_id: str, s3_key: str, title: Optional[str] = None):
+    """Update job with video S3 key and optional title (async, requires session)."""
     try:
         stmt = select(Job).where(Job.id == uuid.UUID(job_id))
         result = await session.execute(stmt)
@@ -203,6 +203,8 @@ async def update_job_video_s3_key_async(session: AsyncSession, job_id: str, s3_k
             job.video_s3_key = s3_key
             job.status = JobStatus.DOWNLOADED.value
             job.failed = False  # Clear failed flag when video is successfully uploaded
+            if title is not None:
+                job.title = title
             await session.commit()
     except Exception as e:
         await session.rollback()
@@ -290,13 +292,14 @@ async def get_job_async(session: AsyncSession, job_id: str) -> Optional[Dict[str
     return None
 
 
-async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, limit: int = 10, offset: int = 0) -> List[Dict[str, Any]]:
     """Get jobs by client_id, ordered by created_at descending (async, requires session).
     
     Args:
         session: Database session
         client_id: Client ID to filter by
         limit: Maximum number of jobs to return (default 10)
+        offset: Number of jobs to skip (default 0)
         
     Returns:
         List of job dictionaries, ordered by created_at descending (most recent first)
@@ -305,6 +308,7 @@ async def get_jobs_by_client_id_async(session: AsyncSession, client_id: str, lim
         select(Job)
         .where(Job.client_id == client_id)
         .order_by(desc(Job.created_at))
+        .offset(offset)
         .limit(limit)
     )
     result = await session.execute(stmt)

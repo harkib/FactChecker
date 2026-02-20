@@ -87,6 +87,7 @@ struct ContentView: View {
         Group {
             if authService.isAuthenticated {
                 NavigationView {
+                ScrollViewReader { proxy in
                 List {
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
@@ -132,12 +133,24 @@ struct ContentView: View {
                                 viewModel.toggleJobExpansion(jobId: job.id)
                             }
                         }
+                        .id(job.id)
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowSeparator(.hidden)
+                    }
+                    if viewModel.hasMoreJobs && !viewModel.jobs.isEmpty {
+                        LoadMoreRow(
+                            isLoadingMore: viewModel.isLoadingMore,
+                            proxy: proxy,
+                            anchorId: viewModel.jobs.last?.id,
+                            onLoadMore: { await viewModel.loadMoreJobs() }
+                        )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowSeparator(.hidden)
                     }
                 }
             }
             .listStyle(PlainListStyle())
+                }
             .refreshable {
                 await viewModel.refreshJobs()
             }
@@ -400,6 +413,64 @@ struct PhotoPickerView: View {
     }
 }
 
+// MARK: - Load More Row
+
+struct LoadMoreRow: View {
+    let isLoadingMore: Bool
+    let proxy: ScrollViewProxy
+    let anchorId: String?
+    let onLoadMore: () async -> Void
+    
+    @State private var dragOffset: CGFloat = 0
+    private let triggerThreshold: CGFloat = 50
+    
+    var body: some View {
+        HStack {
+            Spacer()
+            Group {
+                if isLoadingMore {
+                    ProgressView()
+                        .scaleEffect(1.4)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .scaleEffect(1 + min(dragOffset / triggerThreshold * 0.3, 0.3))
+                }
+            }
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 15)
+                    .onChanged { value in
+                        if !isLoadingMore, value.translation.height < 0 {
+                            dragOffset = -value.translation.height
+                        }
+                    }
+                    .onEnded { value in
+                        if !isLoadingMore, value.translation.height < -triggerThreshold {
+                            let anchor = anchorId
+                            Task {
+                                await onLoadMore()
+                                if let id = anchor {
+                                    try? await Task.sleep(nanoseconds: 50_000_000)
+                                    await MainActor.run {
+                                        withAnimation(.easeOut(duration: 0.15)) {
+                                            proxy.scrollTo(id, anchor: .bottom)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        dragOffset = 0
+                    }
+            )
+            Spacer()
+        }
+    }
+}
+
 // MARK: - Job Card View
 
 struct JobCardView: View {
@@ -596,14 +667,14 @@ struct JobCardView: View {
                                 .foregroundColor(.secondary)
                                 .allowsHitTesting(false)
 
-                            // Open Original URL Button
+                            // Open Media Button
                             if let url = URL(string: job.video_url) {
                                 Button(action: {
                                     UIApplication.shared.open(url)
                                 }) {
                                     HStack {
                                         Image(systemName: "safari")
-                                        Text("Open Original URL")
+                                        Text("Open Media")
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding()
@@ -684,7 +755,7 @@ struct JobCardView: View {
                     }) {
                         HStack {
                             Image(systemName: "safari")
-                            Text("Open Original URL")
+                            Text("Open Media")
                         }
                         .frame(maxWidth: .infinity)
                         .padding()

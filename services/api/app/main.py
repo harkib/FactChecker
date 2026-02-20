@@ -234,17 +234,19 @@ async def startup_event():
 @app.get("/jobs", response_model=List[JobResponse])
 async def get_jobs(
     db: AsyncSession = Depends(get_db),
-    client_id: Optional[str] = Depends(get_client_id)
+    client_id: Optional[str] = Depends(get_client_id),
+    limit: int = 20,
+    offset: int = 0,
 ):
-    """Get last 10 jobs for a client_id, ordered by creation date (most recent first)."""
+    """Get jobs for a client_id with pagination, ordered by creation date (most recent first)."""
     try:
         # Client ID is required
         if not client_id:
             logger.warning("Missing client ID in request")
             raise HTTPException(status_code=400, detail="X-Client-ID header is required")
         
-        logger.debug("Getting jobs for client", client_id=client_id)
-        jobs = await get_jobs_by_client_id(db, client_id)
+        logger.debug("Getting jobs for client", client_id=client_id, limit=limit, offset=offset)
+        jobs = await get_jobs_by_client_id(db, client_id, limit=limit, offset=offset)
         logger.debug("Jobs retrieved successfully", count=len(jobs), client_id=client_id)
         return [JobResponse(**job) for job in jobs]
     except HTTPException:

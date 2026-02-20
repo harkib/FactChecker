@@ -71,18 +71,20 @@ async def get_job_by_id(db: AsyncSession, job_id: str):
     return await get_job_async(db, job_id)
 
 
-async def get_jobs_by_client_id(db: AsyncSession, client_id: str):
-    """Get last 10 jobs by client_id, ordered by created_at descending.
+async def get_jobs_by_client_id(db: AsyncSession, client_id: str, limit: int = 20, offset: int = 0):
+    """Get jobs by client_id, ordered by created_at descending.
     
     Args:
         db: Database session
         client_id: Client ID to filter by
+        limit: Maximum number of jobs to return (default 20)
+        offset: Number of jobs to skip (default 0)
         
     Returns:
         List of job dictionaries, ordered by created_at descending (most recent first)
     """
-    logger.debug("Retrieving jobs from database", client_id=client_id)
-    return await get_jobs_by_client_id_async(db, client_id, limit=10)
+    logger.debug("Retrieving jobs from database", client_id=client_id, limit=limit, offset=offset)
+    return await get_jobs_by_client_id_async(db, client_id, limit=limit, offset=offset)
 
 
 async def generate_presigned_frame_url(bucket_name: str, frame_key: str, expiration: int = 3600) -> Optional[str]:
