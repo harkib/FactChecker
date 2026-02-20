@@ -13,7 +13,7 @@ Output JSON schema:
   "verifications": [
     {
       "claim": "string",
-      "verdict": "SUPPORTED|NOT_SUPPORTED|PARTIALLY_SUPPORTED|MISLEADING|UNVERIFIABLE|DISPUTED|NOT_FACTUAL",
+      "verdict": "SUPPORTED|NOT_SUPPORTED|PARTIALLY_SUPPORTED|MISLEADING|UNVERIFIABLE|DISPUTED",
       "rationale": "string",
     }
   ]
@@ -29,22 +29,23 @@ Rules for extracting claims:
 - Use simple scientific wording.
 - Do NOT verify, do NOT judge truth, do NOT add outside facts.
 - If the input is mostly opinion/prediction, still extract any embedded factual claims.
-- If there are zero factual claims, return an empty list.
+- If there are no claims, return a title and an empty list for verifications.
 - Consider both the transcript text and any visual information from the images when extracting claims.
+- Check if the images are likey AI generated or manipulated.
 
 Rules for verifying claims:
-- Determine verdict: SUPPORTED, NOT_SUPPORTED, PARTIALLY_SUPPORTED, MISLEADING, UNVERIFIABLE, DISPUTED, NOT_FACTUAL
+- Determine verdict: SUPPORTED, NOT_SUPPORTED, PARTIALLY_SUPPORTED, MISLEADING, UNVERIFIABLE, DISPUTED
     - SUPPORTED = Sufficient evidence supports the claim.
     - NOT_SUPPORTED = Insufficient evidence supports the claim.
     - PARTIALLY_SUPPORTED = Some evidence supports the claim, but not enough to be fully supported.
     - MISLEADING = The claim is technically accurate but omits context or presents information in a way that could deceive.
     - DISPUTED = Evidence conflicts, need more information to determine.
     - UNVERIFIABLE = Insufficient information to determine.
-    - NOT_FACTUAL = The claim is not factual, it is an opinion or prediction.
 - Provide a rationale for the verdict
 - Do not fabricate citations or details.
 - Keep rationales concise and evidence-anchored.
 - Use external sources to verify the claim (web search), use citations.
+- Check for data/sources against the claim. 
 
 Rules (general):
 - Output ONLY valid JSON exactly. No markdown.

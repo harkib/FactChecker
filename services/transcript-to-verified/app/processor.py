@@ -16,6 +16,10 @@ from shared.logger import get_logger, bind_job_id
 
 logger = get_logger("transcript-to-verified processor")
 
+# Internal retry for Gemini: up to 3 attempts, ~1s between (within ~3s total)
+GEMINI_RETRY_ATTEMPTS = 3
+GEMINI_RETRY_DELAY_SEC = 1
+
 
 def add_citations(response):
     """
@@ -211,7 +215,7 @@ async def extract_and_verify_claims_gemini(
     
     # Build contents from prompt
     contents = get_prompt_gemini(transcript=transcript, image_data_list=image_data_list)
-    
+
     # Generate content with Gemini (run sync call in executor to maintain async pattern)
     def generate_sync():
         return client.models.generate_content(
@@ -226,39 +230,53 @@ async def extract_and_verify_claims_gemini(
                 ]
             )
         )
-    
-    extraction_response = await asyncio.to_thread(generate_sync)
-    extraction_text = add_citations(extraction_response)
 
-    if extraction_text is None or extraction_text.strip() == "":
-        logger.error(
-            "Invalid response text (empty)",
-            extraction_text=extraction_text,
-            gemini_response_debug=get_gemini_debug_info(extraction_response)
-        )
-        raise ValueError(f"Invalid response text: {extraction_text}")
-    
-    # Extract response text
-    l_idx = extraction_text.find('{')
-    r_idx = extraction_text.rfind('}')
-    if l_idx == -1 or r_idx == -1:
-        logger.error(
-            "Invalid response text (not json)",
-            extraction_text=extraction_text,
-            gemini_response_debug=get_gemini_debug_info(extraction_response)
-        )
-        raise ValueError(f"Invalid response text: {extraction_text}")
-    extraction_output = extraction_text[l_idx:r_idx+1]
-    
-    
-    result_data = json.loads(extraction_output)
-    
-    # Validate structure
-    if "title" not in result_data or "verifications" not in result_data:
-        logger.error("Response missing required fields", result_data=result_data, gemini_response_debug=get_gemini_debug_info(extraction_response))
-        raise ValueError("Response missing required fields: title and verifications")
-    
-    return result_data
+    for attempt in range(1, GEMINI_RETRY_ATTEMPTS + 1):
+        try:
+            extraction_response = await asyncio.to_thread(generate_sync)
+            extraction_text = add_citations(extraction_response)
+
+            if extraction_text is None or extraction_text.strip() == "":
+                logger.error(
+                    "Invalid response text (empty)",
+                    extraction_text=extraction_text,
+                    gemini_response_debug=get_gemini_debug_info(extraction_response)
+                )
+                raise ValueError(f"Invalid response text: {extraction_text}")
+
+            l_idx = extraction_text.find('{')
+            r_idx = extraction_text.rfind('}')
+            if l_idx == -1 or r_idx == -1:
+                logger.error(
+                    "Invalid response text (not json)",
+                    extraction_text=extraction_text,
+                    gemini_response_debug=get_gemini_debug_info(extraction_response)
+                )
+                raise ValueError(f"Invalid response text: {extraction_text}")
+            extraction_output = extraction_text[l_idx:r_idx+1]
+
+            result_data = json.loads(extraction_output)
+
+            if "title" not in result_data or "verifications" not in result_data:
+                logger.error(
+                    "Response missing required fields",
+                    result_data=result_data,
+                    gemini_response_debug=get_gemini_debug_info(extraction_response)
+                )
+                raise ValueError("Response missing required fields: title and verifications")
+
+            return result_data
+        except Exception as e:
+            logger.warning(
+                "Gemini call or parse failed, retrying",
+                attempt=attempt,
+                max_attempts=GEMINI_RETRY_ATTEMPTS,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            if attempt == GEMINI_RETRY_ATTEMPTS:
+                raise
+            await asyncio.sleep(GEMINI_RETRY_DELAY_SEC)
 
 
 async def extract_and_verify_claims(
