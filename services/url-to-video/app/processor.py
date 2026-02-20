@@ -150,6 +150,8 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
         "download_sections": f"*0-{INGEST_WINDOW_SEC}",
         "max_filesize": MAX_FILESIZE_MB * 1024 * 1024,
         "concurrent_fragments": 1, # looks less like scraping
+        'forcejson': True,       # output info json after download - remove not real attribute 
+        'writesubtitles': False,
     }
     
     try:
@@ -157,6 +159,7 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
         await update_job_status_async(session, job_id, JobStatus.DOWNLOADING.value, None)
         
         # Download video (synchronous operation - blocks event loop but acceptable)
+        video_title = None
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             
             # Inject custom handler for IP rotation
@@ -165,8 +168,12 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
             ydl._request_director.add_handler(custom_handler)
             
             logger.info("Downloading video", url=url)
-            ydl.download([url])
-        
+            info = ydl.extract_info(url, download=True)
+            video_title = info.get("title") if info else None
+
+        if video_title is not None:
+            logger.info("Video downloaded", job_id=job_id, title=video_title)
+
         # Validate MP4 file integrity before uploading to S3
         if not integv.verify(output_path):
             error_message = "MP4 file validation failed: file is corrupted or invalid"
@@ -182,8 +189,8 @@ async def download_video(url: str, job_id: str, session: AsyncSession) -> str:
         if not await upload_file(output_path, bucket, s3_key):
             raise RuntimeError("Failed to upload video to S3")
         
-        # Update job with S3 key (async) - sets status to DOWNLOADED
-        await update_job_video_s3_key_async(session, job_id, s3_key)
+        # Update job with S3 key and optional title (async) - sets status to DOWNLOADED
+        await update_job_video_s3_key_async(session, job_id, s3_key, title=video_title)
         
         # Cleanup
         os.remove(output_path)
