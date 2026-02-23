@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="iosClip">
+      <rect width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A0A2E"/>
+      <stop offset="50%" style="stop-color:#2D1055"/>
+      <stop offset="100%" style="stop-color:#4A0E8F"/>
+    </linearGradient>
+
+    <radialGradient id="lensGlow" cx="45%" cy="42%" r="50%">
+      <stop offset="0%" style="stop-color:#B87FFF;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#6A0FD1;stop-opacity:0"/>
+    </radialGradient>
+
+    <linearGradient id="glassFill" x1="20%" y1="15%" x2="80%" y2="85%">
+      <stop offset="0%" style="stop-color:#3D1A7A;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#1E0A40;stop-opacity:0.9"/>
+    </linearGradient>
+
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="checkGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" result="grayNoise"/>
+      <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend"/>
+      <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#iosClip)">
+
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+    <rect width="1024" height="1024" fill="url(#bgGrad)" filter="url(#noise)" opacity="0.08"/>
+
+    <!-- Subtle grid lines -->
+    <g opacity="0.06" stroke="#C084FC" stroke-width="1">
+      <line x1="0" y1="256" x2="1024" y2="256"/>
+      <line x1="0" y1="512" x2="1024" y2="512"/>
+      <line x1="0" y1="768" x2="1024" y2="768"/>
+      <line x1="256" y1="0" x2="256" y2="1024"/>
+      <line x1="512" y1="0" x2="512" y2="1024"/>
+      <line x1="768" y1="0" x2="768" y2="1024"/>
+    </g>
+
+    <!-- Ambient glow behind lens -->
+    <ellipse cx="460" cy="450" rx="360" ry="360" fill="url(#lensGlow)"/>
+
+    <!-- === MAGNIFYING GLASS — lens center at (450, 435), radius 290 === -->
+    <circle cx="450" cy="435" r="305" fill="none" stroke="#7C3AED" stroke-width="4" opacity="0.3" filter="url(#glow)"/>
+    <circle cx="450" cy="435" r="285" fill="url(#glassFill)"/>
+    <circle cx="450" cy="435" r="285" fill="none" stroke="#C084FC" stroke-width="3" opacity="0.65"/>
+    <path d="M 258 330 A 285 285 0 0 1 558 168" fill="none" stroke="#E9D5FF" stroke-width="4" stroke-linecap="round" opacity="0.32"/>
+
+    <!-- Play triangle inside lens -->
+    <polygon points="372,352 372,518 510,435" fill="#7C3AED" opacity="0.16"/>
+
+    <!-- Fact-check lines inside lens -->
+    <g opacity="0.2" stroke="#C4B5FD" stroke-width="12" stroke-linecap="round">
+      <line x1="300" y1="370" x2="580" y2="370"/>
+      <line x1="300" y1="420" x2="540" y2="420"/>
+      <line x1="300" y1="470" x2="560" y2="470"/>
+      <line x1="300" y1="520" x2="490" y2="520"/>
+    </g>
+
+    <!-- === HANDLE === -->
+    <line x1="682" y1="668" x2="870" y2="858" stroke="#1A0A2E" stroke-width="110" stroke-linecap="round" opacity="0.5"/>
+    <line x1="682" y1="668" x2="868" y2="856" stroke="#7C3AED" stroke-width="92" stroke-linecap="round"/>
+    <line x1="682" y1="668" x2="868" y2="856" stroke="#A855F7" stroke-width="42" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="868" cy="856" r="46" fill="#6D28D9"/>
+
+    <!-- === CHECKMARK BADGE === -->
+    <circle cx="690" cy="640" r="128" fill="#1A0A2E" opacity="0.88"/>
+    <circle cx="690" cy="640" r="118" fill="#7C3AED"/>
+    <circle cx="690" cy="640" r="118" fill="none" stroke="#E9D5FF" stroke-width="3" opacity="0.5"/>
+    <polyline
+      points="632,640 672,685 758,590"
+      fill="none"
+      stroke="white"
+      stroke-width="24"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#checkGlow)"
+    />
+
+    <!-- Ambient particles -->
+    <circle cx="140" cy="140" r="6" fill="#C084FC" opacity="0.35"/>
+    <circle cx="175" cy="112" r="3" fill="#E9D5FF" opacity="0.25"/>
+    <circle cx="900" cy="140" r="4" fill="#A855F7" opacity="0.25"/>
+    <circle cx="140" cy="900" r="4" fill="#A855F7" opacity="0.2"/>
+
+  </g>
+</svg>
