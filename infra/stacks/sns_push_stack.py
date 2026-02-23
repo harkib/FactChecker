@@ -18,7 +18,7 @@ from constructs import Construct
 
 
 class SnsPushStack(Stack):
-    """Stack for SNS platform application (APNs) for iOS push. Requires secret factchecker/apns-credentials with keys: PlatformCredential (.p8 content), PlatformPrincipal (Key ID), ApplePlatformTeamID, ApplePlatformBundleID."""
+    """Stack for SNS platform application (APNs) for iOS push. Requires secret factchecker/apns-credentials (prod) and factchecker/apns-sandbox-credentials (sandbox) with keys: PlatformCredential (.p8 content), PlatformPrincipal (Key ID), ApplePlatformTeamID, ApplePlatformBundleID."""
 
     def __init__(
         self,
@@ -30,6 +30,9 @@ class SnsPushStack(Stack):
 
         apns_secret = secretsmanager.Secret.from_secret_name_v2(
             self, "APNsSecret", "factchecker/apns-credentials"
+        )
+        apns_sandbox_secret = secretsmanager.Secret.from_secret_name_v2(
+            self, "APNsSandboxSecret", "factchecker/apns-sandbox-credentials"
         )
 
         # IAM role for SNS to write delivery status logs to CloudWatch
@@ -47,8 +50,11 @@ class SnsPushStack(Stack):
                     "logs:CreateLogStream",
                     "logs:PutLogEvents",
                     "logs:PutLogEventsBatch",
+                    "logs:PutMetricFilter",
+                    "logs:PutRetentionPolicy",
                 ],
-                resources=[f"arn:aws:logs:{self.region}:{self.account}:log-group:sns/*"],
+                # Log-stream ARNs (used by PutLogEvents) are not matched by log-group:sns/*; use * so SNS can write delivery status.
+                resources=[f"arn:aws:logs:{self.region}:{self.account}:*"],
             )
         )
 
@@ -64,6 +70,7 @@ class SnsPushStack(Stack):
             timeout=Duration.seconds(60),
         )
         apns_secret.grant_read(handler)
+        apns_sandbox_secret.grant_read(handler)
         handler.add_to_role_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
@@ -92,6 +99,7 @@ class SnsPushStack(Stack):
             service_token=provider.service_token,
             properties={
                 "SecretArn": apns_secret.secret_arn,
+                "SecretArnSandbox": apns_sandbox_secret.secret_arn,
                 "Name": "factchecker-ios-apns",
                 "SuccessFeedbackRoleArn": sns_feedback_role.role_arn,
                 "FailureFeedbackRoleArn": sns_feedback_role.role_arn,
