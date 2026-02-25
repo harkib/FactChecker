@@ -73,6 +73,14 @@ extension String {
     }
 }
 
+// MARK: - Claim Sheet Item
+
+struct ClaimSheetItem: Identifiable {
+    let id: String
+    let verification: Verification
+    let jobId: String
+}
+
 struct ContentView: View {
     @EnvironmentObject var viewModel: FactCheckViewModel
     @StateObject private var authService = AuthService.shared
@@ -81,7 +89,7 @@ struct ContentView: View {
     @State private var selectedFailedJobId: String? = nil
     @State private var showURLInput: Bool = false
     @State private var urlInputText: String = ""
-    @State private var showPhotoPicker: Bool = false
+    @State private var claimSheetItem: ClaimSheetItem? = nil
     
     var body: some View {
         Group {
@@ -127,7 +135,8 @@ struct ContentView: View {
                         JobCardView(
                             job: job,
                             isExpanded: viewModel.isJobExpanded(job.id),
-                            viewModel: viewModel
+                            viewModel: viewModel,
+                            claimSheetItem: $claimSheetItem
                         ) {
                             if job.status == "completed" {
                                 viewModel.toggleJobExpansion(jobId: job.id)
@@ -169,23 +178,22 @@ struct ContentView: View {
                     }
                 }
                 
-                // Plus button (trailing/right side)
+                // URL and Upload (trailing/right side)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
+                    HStack(spacing: 16) {
                         Button(action: {
                             showURLInput = true
                         }) {
-                            Label("URL", systemImage: "link")
+                            Image(systemName: "link")
                         }
-                        
-                        Button(action: {
-                            showPhotoPicker = true
-                        }) {
-                            Label("Upload", systemImage: "photo")
+                        PhotosPicker(
+                            selection: $selectedVideoItem,
+                            matching: .videos,
+                            photoLibrary: .shared()
+                        ) {
+                            Image(systemName: "photo")
                         }
                         .disabled(viewModel.isUploading || viewModel.isLoading)
-                    } label: {
-                        Image(systemName: "plus")
                     }
                 }
             }
@@ -195,12 +203,16 @@ struct ContentView: View {
                     viewModel: viewModel,
                     isPresented: $showURLInput
                 )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Color(.systemBackground))
             }
-            .sheet(isPresented: $showPhotoPicker) {
-                PhotoPickerView(
-                    selectedVideoItem: $selectedVideoItem,
-                    isPresented: $showPhotoPicker
-                )
+            .sheet(item: $claimSheetItem) { item in
+                ClaimDetailSheetView(item: item) {
+                    claimSheetItem = nil
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
             .onChange(of: selectedVideoItem) { newItem in
                 Task {
@@ -305,12 +317,15 @@ struct URLInputSheet: View {
         NavigationView {
             VStack(spacing: 20) {
                 TextField("Enter video URL", text: $urlInputText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
                     .focused($isTextFieldFocused)
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(.regularMaterial)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
                 
                 Button(action: {
                     guard !urlInputText.isEmpty else {
@@ -331,31 +346,32 @@ struct URLInputSheet: View {
                     urlInputText = ""
                     isPresented = false
                 }) {
-                    HStack {
+                    HStack(spacing: 8) {
                         if viewModel.isLoading {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: .primary))
                         }
                         Text(viewModel.isLoading ? "Processing..." : "Submit")
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(viewModel.isLoading || urlInputText.isEmpty ? Color.gray : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .padding(.vertical, 14)
+                    .background(.regularMaterial)
+                    .foregroundStyle(.primary)
+                    .cornerRadius(12)
                 }
                 .disabled(viewModel.isLoading || urlInputText.isEmpty || viewModel.isUploading)
                 .padding(.horizontal)
                 
                 Spacer()
             }
-            .navigationTitle("Enter Video URL")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(.top, 36)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(action: {
                         urlInputText = ""
                         isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
                     }
                 }
             }
@@ -366,46 +382,83 @@ struct URLInputSheet: View {
     }
 }
 
-// MARK: - Photo Picker View
+// MARK: - Claim Detail Sheet View
 
-struct PhotoPickerView: View {
-    @Binding var selectedVideoItem: PhotosPickerItem?
-    @Binding var isPresented: Bool
-    
+struct ClaimDetailSheetView: View {
+    let item: ClaimSheetItem
+    let onDismiss: () -> Void
+
+    private var parsedRationale: (cleanedText: String, citations: [Citation]) {
+        item.verification.rationale.parseCitations()
+    }
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                PhotosPicker(
-                    selection: Binding(
-                        get: { selectedVideoItem },
-                        set: { newValue in
-                            selectedVideoItem = newValue
-                            if newValue != nil {
-                                isPresented = false
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Claim
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Claim")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        if !item.verification.claim.isEmpty {
+                            Text(item.verification.claim)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    // Verdict
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Verdict")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        VerdictBadge(verdict: item.verification.verdict)
+                    }
+
+                    // Rationale
+                    let (cleanedText, citations) = parsedRationale
+                    if !cleanedText.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Rationale")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            Text(cleanedText)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    // Sources
+                    if !citations.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Sources")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ], spacing: 12) {
+                                ForEach(citations) { citation in
+                                    CitationView(citation: citation)
+                                }
                             }
                         }
-                    ),
-                    matching: .videos,
-                    photoLibrary: .shared()
-                ) {
-                    Label("Choose Video", systemImage: "photo.on.rectangle")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(10)
+                    }
                 }
                 .padding()
-                
-                Spacer()
             }
-            .navigationTitle("Select Video")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        isPresented = false
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
                     }
                 }
             }
@@ -477,6 +530,7 @@ struct JobCardView: View {
     let job: JobResponse
     let isExpanded: Bool
     let viewModel: FactCheckViewModel
+    @Binding var claimSheetItem: ClaimSheetItem?
     let onTap: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
@@ -737,11 +791,14 @@ struct JobCardView: View {
                             ForEach(Array(verifiedClaims.verifications.enumerated()), id: \.offset) { index, verification in
                                 VerificationCardView(
                                     verification: verification,
-                                    verificationId: "\(job.id)-\(index)",
-                                    isExpanded: viewModel.isVerificationExpanded("\(job.id)-\(index)")
-                                ) {
-                                    viewModel.toggleVerificationExpansion(verificationId: "\(job.id)-\(index)")
-                                }
+                                    onTap: {
+                                        claimSheetItem = ClaimSheetItem(
+                                            id: "\(job.id)-\(index)",
+                                            verification: verification,
+                                            jobId: job.id
+                                        )
+                                    }
+                                )
                             }
                         }
                         .padding(.vertical, 8)
@@ -779,74 +836,39 @@ struct JobCardView: View {
 
 struct VerificationCardView: View {
     let verification: Verification
-    let verificationId: String
-    let isExpanded: Bool
     let onTap: () -> Void
-    
-    private var parsedRationale: (cleanedText: String, citations: [Citation]) {
-        verification.rationale.parseCitations()
-    }
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Collapsed Header (always visible)
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if !verification.claim.isEmpty {
-                        Text(verification.claim)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
-                    }
-                    
-                    HStack {
-                        VerdictBadge(verdict: verification.verdict)
-                        Spacer()
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Spacer()
-                
-                // Expand/Collapse Indicator
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
-            }
-            .layoutPriority(1)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                onTap()
-            }
-            
-            // Expanded Content (rationale and citations)
-            if isExpanded {
-                Divider()
-                    .padding(.vertical, 4)
-                
-                let (cleanedText, citations) = parsedRationale
-                
-                if !cleanedText.isEmpty {
-                    Text(cleanedText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                if !verification.claim.isEmpty {
+                    Text(verification.claim)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
                 }
-                
-                // Citations Section
-                if !citations.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(citations) { citation in
-                            CitationView(citation: citation)
-                        }
-                    }
-                    .padding(.top, 8)
+
+                HStack {
+                    VerdictBadge(verdict: verification.verdict)
+                    Spacer()
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+                .font(.caption)
         }
+        .layoutPriority(1)
         .padding()
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
         .background(Color(.secondarySystemBackground))
         .cornerRadius(8)
         .overlay(
@@ -872,16 +894,16 @@ struct CitationView: View {
                 ZStack {
                     Circle()
                         .fill(Color.blue.opacity(0.2))
-                        .frame(width: 28, height: 28)
+                        .frame(width: 34, height: 34)
                     Text("\(citation.id)")
-                        .font(.caption)
+                        .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
                 }
                 
                 // Citation text (from [text](url)) on the right
                 Text(citation.originalText)
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)

@@ -16,7 +16,6 @@ class FactCheckViewModel: ObservableObject {
     @Published var videoURL: String = ""
     @Published var jobs: [JobResponse] = []
     @Published var expandedJobIds: Set<String> = []
-    @Published var expandedVerificationIds: Set<String> = []
     @Published var isLoading: Bool = false
     @Published var isRefreshing: Bool = false
     @Published var errorMessage: String?
@@ -153,26 +152,12 @@ class FactCheckViewModel: ObservableObject {
         if expandedJobIds.contains(jobId) {
             expandedJobIds.remove(jobId)
         } else {
-            expandedJobIds.insert(jobId)
+            expandedJobIds = [jobId]
         }
     }
     
     func isJobExpanded(_ jobId: String) -> Bool {
         return expandedJobIds.contains(jobId)
-    }
-    
-    // MARK: - Verification Expansion
-    
-    func toggleVerificationExpansion(verificationId: String) {
-        if expandedVerificationIds.contains(verificationId) {
-            expandedVerificationIds.remove(verificationId)
-        } else {
-            expandedVerificationIds.insert(verificationId)
-        }
-    }
-    
-    func isVerificationExpanded(_ verificationId: String) -> Bool {
-        return expandedVerificationIds.contains(verificationId)
     }
     
     // MARK: - Video Upload
@@ -259,7 +244,6 @@ class FactCheckViewModel: ObservableObject {
         jobs = []
         hasMoreJobs = true
         expandedJobIds = []
-        expandedVerificationIds = []
         isLoading = false
         isRefreshing = false
         errorMessage = nil
