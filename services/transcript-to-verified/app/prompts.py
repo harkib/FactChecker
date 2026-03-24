@@ -13,7 +13,7 @@ Output JSON schema:
   "verifications": [
     {
       "claim": "string",
-      "verdict": "SUPPORTED|NOT_SUPPORTED|PARTIALLY_SUPPORTED|MISLEADING|UNVERIFIABLE|DISPUTED",
+      "verdict": "SUPPORTED|NOT_SUPPORTED|PARTIALLY_SUPPORTED|MISLEADING|UNVERIFIABLE|DISPUTED|AI_GENERATED",
       "rationale": "string",
     }
   ]
@@ -34,18 +34,19 @@ Rules for extracting claims:
 - Check if the images are likey AI generated or manipulated.
 
 Rules for verifying claims:
-- Determine verdict: SUPPORTED, NOT_SUPPORTED, PARTIALLY_SUPPORTED, MISLEADING, UNVERIFIABLE, DISPUTED
+- Determine verdict: SUPPORTED, NOT_SUPPORTED, PARTIALLY_SUPPORTED, MISLEADING, UNVERIFIABLE, DISPUTED, AI_GENERATED
     - SUPPORTED = Sufficient evidence supports the claim.
     - NOT_SUPPORTED = Insufficient evidence supports the claim.
     - PARTIALLY_SUPPORTED = Some evidence supports the claim, but not enough to be fully supported.
     - MISLEADING = The claim is technically accurate but omits context or presents information in a way that could deceive.
     - DISPUTED = Evidence conflicts, need more information to determine.
     - UNVERIFIABLE = Insufficient information to determine.
+    - AI_GENERATED = Content or imagery appears to be AI-generated or manipulated; cannot verify factual claims.
 - Provide a rationale for the verdict
 - Do not fabricate citations or details.
 - Keep rationales concise and evidence-anchored.
 - Use external sources to verify the claim (web search), use citations.
-- Check for data/sources against the claim. 
+- Also check for external sources that oppose the claim. 
 
 Rules (general):
 - Output ONLY valid JSON exactly. No markdown.

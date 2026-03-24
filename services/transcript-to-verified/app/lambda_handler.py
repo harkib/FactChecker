@@ -43,7 +43,7 @@ def get_gemini_api_key():
     return api_key
 
 
-async def _send_push_notification_async(job_id: str, session) -> None:
+async def _send_push_notification_async(job_id: str, title: str, session) -> None:
     """Load job client_id, get device tokens, send SNS Publish to each endpoint. Does not raise."""
     import boto3
     job_logger = bind_job_id(logger, job_id)
@@ -61,7 +61,7 @@ async def _send_push_notification_async(job_id: str, session) -> None:
             return
         message_dict = {
             "aps": {
-                "alert": {"title": "Fact check ready", "body": "Your fact check is complete."},
+                "alert": {"title": "Gut check ready", "body": title if title else ""},
                 "sound": "default",
             },
             "job_id": job_id,
@@ -184,7 +184,7 @@ async def process_message(message_body: dict, session) -> bool:
         await update_job_verified_claims_async(session, job_id, result)
 
         # Send push notification
-        await _send_push_notification_async(job_id, session)
+        await _send_push_notification_async(job_id, title, session)
 
             
         return True

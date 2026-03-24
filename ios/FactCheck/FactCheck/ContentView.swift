@@ -25,7 +25,6 @@ extension String {
     func parseCitations() -> (cleanedText: String, citations: [Citation]) {
         var citations: [Citation] = []
         var cleanedText = self
-        var citationNumber = 1
         
         // Regex pattern to match markdown links: [text](url) or ([text](url))
         // This pattern handles both formats:
@@ -40,7 +39,8 @@ extension String {
         let nsString = self as NSString
         let matches = regex.matches(in: self, options: [], range: NSRange(location: 0, length: nsString.length))
         
-        // Process matches in reverse order to maintain correct indices when replacing
+        // Assign numbers so first occurrence in text = 1, last = N. Process in reverse order to maintain correct indices when replacing.
+        var citationNumber = matches.count
         for match in matches.reversed() {
             if match.numberOfRanges >= 4 {
                 let originalTextRange = match.range
@@ -56,7 +56,7 @@ extension String {
                         url: url,
                         originalText: originalText
                     )
-                    citations.insert(citation, at: 0) // Insert at beginning since we're processing in reverse
+                    citations.insert(citation, at: 0) // Insert at beginning so final order is 1, 2, ..., N
                     
                     // Replace the markdown link (including outer parentheses if present) with the citation number
                     let replacement = "[\(citationNumber)]"
@@ -64,7 +64,7 @@ extension String {
                         cleanedText.replaceSubrange(range, with: replacement)
                     }
                     
-                    citationNumber += 1
+                    citationNumber -= 1
                 }
             }
         }
@@ -988,6 +988,8 @@ struct VerdictBadge: View {
             return .yellow
         case "NOT_FACTUAL":
             return .gray
+        case "AI_GENERATED":
+            return .purple
         default:
             return .primary
         }
@@ -1007,6 +1009,8 @@ struct VerdictBadge: View {
             return "questionmark.circle.fill"
         case "NOT_FACTUAL":
             return "minus.circle.fill"
+        case "AI_GENERATED":
+            return "cpu"
         default:
             return "circle.fill"
         }
@@ -1034,6 +1038,8 @@ struct VerdictBadge: View {
             return "Disputed"
         case "NOT_FACTUAL":
             return "Not Factual"
+        case "AI_GENERATED":
+            return "AI Generated"
         default:
             return verdict.replacingOccurrences(of: "_", with: " ").capitalized
         }
@@ -1045,9 +1051,27 @@ struct VerdictBadge: View {
 struct VerdictSummaryBadges: View {
     let verifications: [Verification]
     
+    private static let summaryRelevantVerdicts: Set<String> = [
+        "TRUE", "SUPPORTED", "PARTIALLY_TRUE", "PARTIALLY_SUPPORTED",
+        "FALSE", "NOT_SUPPORTED", "NOT_TRUE"
+    ]
+    
     private var verdictCounts: [String: Int] {
         Dictionary(grouping: verifications, by: { $0.verdict })
             .mapValues { $0.count }
+    }
+    
+    private var hasSummaryRelevantVerdicts: Bool {
+        verifications.contains { Self.summaryRelevantVerdicts.contains($0.verdict.uppercased()) }
+    }
+    
+    private var otherUniqueVerdicts: [String] {
+        var seen = Set<String>()
+        return verifications.compactMap { v -> String? in
+            let key = v.verdict.uppercased()
+            guard !Self.summaryRelevantVerdicts.contains(key), seen.insert(key).inserted else { return nil }
+            return v.verdict
+        }
     }
     
     private var summaryVerdict: String {
@@ -1110,6 +1134,8 @@ struct VerdictSummaryBadges: View {
             return .yellow
         case "NOT_FACTUAL":
             return .gray
+        case "AI_GENERATED":
+            return .purple
         default:
             return .primary
         }
@@ -1129,6 +1155,8 @@ struct VerdictSummaryBadges: View {
             return "questionmark.circle.fill"
         case "NOT_FACTUAL":
             return "minus.circle.fill"
+        case "AI_GENERATED":
+            return "cpu"
         default:
             return "circle.fill"
         }
@@ -1160,24 +1188,38 @@ struct VerdictSummaryBadges: View {
             return "Disputed"
         case "NOT_FACTUAL":
             return "Not Factual"
+        case "AI_GENERATED":
+            return "AI Generated"
         default:
             return verdict.replacingOccurrences(of: "_", with: " ").capitalized
         }
     }
     
-    var body: some View {
+    private func summaryBadge(verdict: String) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: verdictIcon(for: summaryVerdict))
+            Image(systemName: verdictIcon(for: verdict))
                 .font(.caption2)
-            Text(verdictDisplayText(for: summaryVerdict))
+            Text(verdictDisplayText(for: verdict))
                 .font(.caption)
                 .fontWeight(.semibold)
+                .lineLimit(1)
         }
         .foregroundColor(.white)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(verdictColor(for: summaryVerdict))
+        .background(verdictColor(for: verdict))
         .cornerRadius(6)
+    }
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            if hasSummaryRelevantVerdicts {
+                summaryBadge(verdict: summaryVerdict)
+            }
+            ForEach(otherUniqueVerdicts, id: \.self) { verdict in
+                summaryBadge(verdict: verdict)
+            }
+        }
     }
 }
 
