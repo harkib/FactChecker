@@ -12,10 +12,9 @@ from stacks.worker_stacks import WorkerStacks
 
 app = cdk.App()
 
-# Create VPC and ECS Cluster stack
+# Create VPC stack
 vpc_stack = VpcStack(app, "VpcStack")
 vpc = vpc_stack.vpc
-cluster = vpc_stack.cluster
 
 # Create ECR stack (must be created before ECS services)
 ecr_stack = EcrStack(app, "EcrStack")
@@ -58,7 +57,6 @@ api_stack = ApiStack(
     app,
     "ApiStack",
     vpc=vpc,
-    cluster=cluster,
     database_secret=db_secret,
     database_endpoint=database_stack.db_endpoint.hostname,
     video_bucket_name=video_bucket_name,
@@ -74,7 +72,6 @@ worker_stacks = WorkerStacks(
     app,
     "WorkerStacks",
     vpc=vpc,
-    cluster=cluster,
     database_secret=db_secret,
     database_endpoint=database_stack.db_endpoint.hostname,
     database_instance=database_stack.database,

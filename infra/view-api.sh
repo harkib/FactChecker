@@ -10,7 +10,7 @@ echo ""
 STACK_NAME="ApiStack"
 REGION="${AWS_REGION:-us-east-1}"
 
-echo "1. API Endpoint (Load Balancer DNS):"
+echo "1. API Endpoint (API Gateway):"
 aws cloudformation describe-stacks \
   --stack-name "$STACK_NAME" \
   --region "$REGION" \
@@ -41,7 +41,7 @@ if [ -n "$API_KEY_ID" ] && [ "$API_KEY_ID" != "None" ]; then
     --region "$REGION" \
     --query 'value' \
     --output text 2>/dev/null)
-  
+
   if [ -n "$API_KEY_VALUE" ]; then
     echo "  API Key Value: $API_KEY_VALUE"
     echo ""
@@ -55,67 +55,39 @@ else
 fi
 
 echo ""
-echo "4. Load Balancer Details:"
-LB_ARN=$(aws cloudformation describe-stack-resources \
+echo "4. EC2 Instance Details:"
+EC2_IP=$(aws cloudformation describe-stacks \
   --stack-name "$STACK_NAME" \
   --region "$REGION" \
-  --query 'StackResources[?ResourceType==`AWS::ElasticLoadBalancingV2::LoadBalancer`].PhysicalResourceId' \
+  --query 'Stacks[0].Outputs[?OutputKey==`Ec2PublicIp`].OutputValue' \
+  --output text 2>/dev/null)
+
+INSTANCE_ID=$(aws cloudformation describe-stack-resources \
+  --stack-name "$STACK_NAME" \
+  --region "$REGION" \
+  --query 'StackResources[?ResourceType==`AWS::EC2::Instance`].PhysicalResourceId' \
   --output text 2>/dev/null | head -1)
 
-if [ -n "$LB_ARN" ]; then
-  echo "  Load Balancer ARN: $LB_ARN"
-  LB_DNS=$(aws elbv2 describe-load-balancers \
-    --load-balancer-arns "$LB_ARN" \
+if [ -n "$INSTANCE_ID" ]; then
+  echo "  Instance ID: $INSTANCE_ID"
+  echo "  Elastic IP: $EC2_IP"
+
+  aws ec2 describe-instances \
+    --instance-ids "$INSTANCE_ID" \
     --region "$REGION" \
-    --query 'LoadBalancers[0].DNSName' \
-    --output text 2>/dev/null)
-  echo "  Load Balancer DNS: $LB_DNS"
-  echo "  API URL: http://$LB_DNS"
+    --query 'Reservations[0].Instances[0].{State:State.Name,Type:InstanceType,LaunchTime:LaunchTime}' \
+    --output table 2>/dev/null || echo "  (Could not fetch instance status)"
 else
-  echo "  (Load balancer not found)"
+  echo "  (EC2 instance not found)"
 fi
 
 echo ""
-echo "5. ECS Service Status:"
-CLUSTER_NAME=$(aws cloudformation describe-stack-resources \
-  --stack-name "$STACK_NAME" \
-  --region "$REGION" \
-  --query 'StackResources[?ResourceType==`AWS::ECS::Service`].PhysicalResourceId' \
-  --output text 2>/dev/null | cut -d'/' -f2 | head -1)
-
-if [ -n "$CLUSTER_NAME" ]; then
-  SERVICE_NAME=$(aws cloudformation describe-stack-resources \
-    --stack-name "$STACK_NAME" \
-    --region "$REGION" \
-    --query 'StackResources[?ResourceType==`AWS::ECS::Service`].PhysicalResourceId' \
-    --output text 2>/dev/null | cut -d'/' -f3 | head -1)
-  
-  if [ -n "$SERVICE_NAME" ]; then
-    CLUSTER_FULL=$(aws cloudformation describe-stack-resources \
-      --stack-name "$STACK_NAME" \
-      --region "$REGION" \
-      --query 'StackResources[?ResourceType==`AWS::ECS::Service`].PhysicalResourceId' \
-      --output text 2>/dev/null | head -1 | cut -d'/' -f1-2)
-    
-    echo "  Cluster: $CLUSTER_FULL"
-    echo "  Service: $SERVICE_NAME"
-    
-    aws ecs describe-services \
-      --cluster "$CLUSTER_FULL" \
-      --services "$SERVICE_NAME" \
-      --region "$REGION" \
-      --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount,TaskDefinition:taskDefinition}' \
-      --output table 2>/dev/null || echo "  (Could not fetch service status)"
-  fi
-fi
-
-echo ""
-echo "6. Test API Health Endpoint:"
-if [ -n "$LB_DNS" ]; then
-  echo "  Testing: http://$LB_DNS/health"
-  curl -s -o /dev/null -w "  Status: %{http_code}\n" "http://$LB_DNS/health" || echo "  (Could not reach endpoint - service may still be starting)"
+echo "5. Test API Health Endpoint:"
+if [ -n "$EC2_IP" ]; then
+  echo "  Testing: http://$EC2_IP:8000/health"
+  curl -s -o /dev/null -w "  Status: %{http_code}\n" "http://$EC2_IP:8000/health" || echo "  (Could not reach endpoint - instance may still be starting)"
 else
-  echo "  (Load balancer DNS not available)"
+  echo "  (EC2 IP not available)"
 fi
 
 echo ""
@@ -129,14 +101,20 @@ echo "  API_KEY_ID=\$(aws cloudformation describe-stacks --stack-name ApiStack -
 echo "  aws apigateway get-api-key --api-key \$API_KEY_ID --include-value --query 'value' --output text"
 echo ""
 echo "Test health endpoint:"
-if [ -n "$LB_DNS" ]; then
-  echo "  curl http://$LB_DNS/health"
+if [ -n "$EC2_IP" ]; then
+  echo "  curl http://$EC2_IP:8000/health"
 else
-  echo "  curl http://<LOAD_BALANCER_DNS>/health"
+  echo "  curl http://<EC2_ELASTIC_IP>:8000/health"
+fi
+echo ""
+echo "SSH via SSM Session Manager:"
+if [ -n "$INSTANCE_ID" ]; then
+  echo "  aws ssm start-session --target $INSTANCE_ID"
+else
+  echo "  aws ssm start-session --target <INSTANCE_ID>"
 fi
 echo ""
 echo "View in AWS Console:"
-echo "  ECS: https://console.aws.amazon.com/ecs/v2/clusters"
-echo "  Load Balancer: https://console.aws.amazon.com/ec2/v2/home#LoadBalancers:"
+echo "  EC2: https://console.aws.amazon.com/ec2/v2/home#Instances:"
+echo "  API Gateway: https://console.aws.amazon.com/apigateway"
 echo "  CloudFormation: https://console.aws.amazon.com/cloudformation/home#/stacks"
-
