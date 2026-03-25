@@ -2,7 +2,6 @@
 import yt_dlp
 import os
 import tempfile
-import sys
 import io
 
 import requests

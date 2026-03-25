@@ -25,7 +25,6 @@ fi
 
 ECR_REPO=${ECR_REPO:-"$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/factchecker"}
 
-# SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified" "transcript-to-verified")
 SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-verified" "s3-video-event")
 IMAGE_TAG=${1:-"latest"}
 

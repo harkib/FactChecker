@@ -45,7 +45,6 @@ assets_bucket_name = storage_stack.assets_bucket.bucket_name
 # Get remaining queue URLs
 url_to_video_queue_url = queue_stack.url_to_video_queue.queue_url
 transcript_to_claims_queue_url = queue_stack.transcript_to_claims_queue.queue_url
-claims_to_verified_queue_url = queue_stack.claims_to_verified_queue.queue_url
 
 # Create SNS push stack (APNs for iOS). Requires secret factchecker/apns-credentials.
 sns_push_stack = SnsPushStack(app, "SnsPushStack")
@@ -83,12 +82,9 @@ worker_stacks = WorkerStacks(
     video_to_transcript_queue_url=video_to_transcript_queue_url,
     transcript_to_claims_queue=queue_stack.transcript_to_claims_queue,
     transcript_to_claims_queue_url=transcript_to_claims_queue_url,
-    claims_to_verified_queue=queue_stack.claims_to_verified_queue,
-    claims_to_verified_queue_url=claims_to_verified_queue_url,
     url_to_video_queue_arn=queue_stack.url_to_video_queue.queue_arn,
     video_to_transcript_queue_arn=queue_stack.video_to_transcript_queue.queue_arn,
     transcript_to_claims_queue_arn=queue_stack.transcript_to_claims_queue.queue_arn,
-    claims_to_verified_queue_arn=queue_stack.claims_to_verified_queue.queue_arn,
     ecr_repositories=ecr_stack.repositories,
     sns_platform_application_arn=sns_platform_application_arn,
 )

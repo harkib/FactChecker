@@ -5,7 +5,6 @@ import whisper
 import os
 import glob
 import tempfile
-import sys
 
 from shared.s3_client import upload_file, upload_bytes, download_file
 from shared.database import update_job_transcript_s3_key_async, update_job_status_async, update_job_failed_async, JobStatus

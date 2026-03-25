@@ -3,7 +3,6 @@ import os
 import json
 import base64
 import tempfile
-import sys
 import asyncio
 from typing import Dict, Any, Tuple
 
@@ -125,7 +124,7 @@ async def _download_transcript_and_frames(
         if not image_data_list:
             raise RuntimeError("No frame images found")
         
-        print(f"Loaded transcript ({len(transcript)} characters) and {len(image_data_list)} image frames")
+        logger.info("Loaded transcript and frames", transcript_length=len(transcript), frame_count=len(image_data_list))
         
         return transcript, image_data_list
     finally:
@@ -169,7 +168,7 @@ async def extract_and_verify_claims_openai(
         input=get_prompt_openai(transcript=transcript, image_data_list=image_data_list)
     )
     output_text = response.output_text
-    print(f"Extraction and verification output: {output_text}\n")
+    logger.info("Extraction and verification output", output_length=len(output_text))
     
     result_data = json.loads(output_text)
     

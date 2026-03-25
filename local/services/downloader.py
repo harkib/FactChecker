@@ -4,10 +4,12 @@ import yt_dlp
 import os
 import tempfile
 import sys
+import json
 
 TESTS = [
     ('tiktok_0', 'https://www.tiktok.com/t/ZP8yCD5Wg/'),
     ('instagram_0', 'https://www.instagram.com/reel/DR0Tkf-EvbX/?igsh=cXlzNzZzbmt2dnVu'),
+    ('instagram_1', 'https://instagram.com/p/DUq3dDhEvGQ/'),
 ]
 
 DOWNLOAD_DIR = "local/downloads"
@@ -48,21 +50,63 @@ def download_video(url: str, job_id: str) -> bool:
         "download_sections": f"*0-{INGEST_WINDOW_SEC}",
         "max_filesize": MAX_FILESIZE_MB * 1024 * 1024,
         "concurrent_fragments": 1, # looks less like scraping
+        # 'skip_download': False,  # ensure download
+        # 'forcejson': True,       # output info json after download
+        'writesubtitles': False,
     }
-    
-    try:
 
+    video_title = None
+
+    try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            info = ydl.extract_info(url, download=True)
+            video_title = info.get('title', None)
        
     except Exception as e:
         print(f"[{job_id}] Error downloading video: {e}")
         return False
     else:
-        print(f"[{job_id}] Video downloaded successfully")
+        print(f"\n[{job_id}] Video downloaded successfully, title: {video_title}\n")
         return True
 
+def download_image(url: str, job_id: str) -> bool:
+    pass
+
+def download_metadata(url: str, job_id: str) -> dict | None:
+
+    ydl_opts = {
+        'noplaylist': True,
+        'quiet': True,
+        'skip_download': True,
+        'writesubtitles': False,
+        "ignore_no_formats_error": True,
+    }
+
+    metadata = {}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            metadata = ydl.extract_info(url, download=False)
+    except Exception as e:
+        print(f"[{job_id}] Error downloading metadata: {e}")
+
+    else:
+        print(f"\n[{job_id}] Metadata downloaded successfully\n")
+        print(json.dumps(metadata, indent=4))
+
+    return metadata
+
+def download(url: str, job_id: str) -> bool:
+
+    metadata = download_metadata(url, job_id)
+    file_type = metadata.get('ext', None)
+    if file_type == 'mp4':
+        return download_video(url, job_id)
+    elif file_type == 'jpg':
+        return download_image(url, job_id)
+    else:
+        print(f"[{job_id}] Unsupported file type: {file_type}")
+        return False
 
 if __name__ == "__main__":
     for job_id, url in TESTS:
-        download_video(url, job_id)
+        download(url, job_id)

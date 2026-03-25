@@ -10,7 +10,7 @@ if [ -f .env ]; then
 fi
 
 AWS_REGION=${AWS_REGION:-"us-east-1"}
-SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-claims" "claims-to-verified")
+SERVICES=("api" "url-to-video" "video-to-transcript" "transcript-to-verified" "s3-video-event")
 
 echo "Deleting ECR repositories in region: $AWS_REGION"
 echo ""

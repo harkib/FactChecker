@@ -8,12 +8,10 @@ REGION=${AWS_REGION:-"us-east-1"}
 
 # List of all Lambda service names
 SERVICES=(
-    "url-to-video"
-    "video-to-transcript"
-    # "transcript-to-claims"
-    # "claims-to-verified"
+    # "url-to-video"
+    # "video-to-transcript"
     "transcript-to-verified"
-    "s3-video-event"
+    # "s3-video-event"
 )
 
 # Get AWS account ID

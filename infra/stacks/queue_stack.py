@@ -60,16 +60,4 @@ class QueueStack(Stack):
             ),
         )
 
-        # Queue: Claims to Verified
-        self.claims_to_verified_queue = sqs.Queue(
-            self,
-            "ClaimsToVerifiedQueue",
-            queue_name="factchecker-claims-to-verified",
-            visibility_timeout=Duration.minutes(16),  # Must be >= Lambda timeout (15 min)
-            retention_period=Duration.days(14),
-            dead_letter_queue=sqs.DeadLetterQueue(
-                max_receive_count=3,
-                queue=dlq,
-            ),
-        )
 

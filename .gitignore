@@ -209,6 +209,7 @@ __marimo__/
 # local data
 local/data/
 local/downloads/
+gallery-dl/
 
 # secret
 .secret

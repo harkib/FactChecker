@@ -12,6 +12,7 @@ if '/app' not in sys.path:
 from shared.sqs_client import receive_messages, delete_message
 from shared.database import init_db, sessionmaker, update_job_status_async
 from shared.logger import get_logger, bind_job_id
+from shared.env import require_env, get_env
 from app.processor import download_video
 
 # Initialize logger with resource name
@@ -88,11 +89,8 @@ async def main_async():
     if sessionmaker is None:
         raise RuntimeError("Database initialization failed: sessionmaker is None")
     
-    queue_url = os.getenv("URL_TO_VIDEO_QUEUE_URL")
-    if not queue_url:
-        raise ValueError("URL_TO_VIDEO_QUEUE_URL environment variable not set")
-    
-    max_concurrent = int(os.getenv("MAX_CONCURRENT_MESSAGES", "10"))
+    queue_url = require_env("URL_TO_VIDEO_QUEUE_URL")
+    max_concurrent = int(get_env("MAX_CONCURRENT_MESSAGES", "10"))
     semaphore = asyncio.Semaphore(max_concurrent)
     
     logger.info("Starting async URL-to-Video worker", queue_url=queue_url, max_concurrent=max_concurrent)

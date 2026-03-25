@@ -1,143 +1,55 @@
 """Lambda handler for Transcript to Verified transformation (async)."""
-import os
-import json
 import sys
-import asyncio
-from typing import Dict, Any, List
 
 # Ensure /app is in Python path (fallback if PYTHONPATH env var isn't set)
 if '/app' not in sys.path:
     sys.path.insert(0, '/app')
 
-# Import modules that don't depend on secrets
 from shared.logger import get_logger, bind_job_id
-from shared.secrets import initialize_secrets
+from shared.env import require_env, get_env
+from shared.handlers import sync_handler, sqs_batch_handler
+from shared.push_notification import send_push_notification
 from shared.database import (
-    get_sessionmaker,
     get_job_async,
     update_job_status_async,
     update_job_failed_async,
-    get_device_tokens_by_client_id_async,
-    invalidate_device_token_by_endpoint_arn_async,
+    update_job_verified_claims_async,
     JobStatus,
 )
 from app.processor import extract_and_verify_claims
 
-# Initialize logger with resource name
 logger = get_logger("transcript-to-verified lambda")
 
 
-def get_openai_api_key():
-    """Get OpenAI API key from environment variable (injected by Lambda from Secrets Manager)."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set")
-    return api_key
-
-
-def get_gemini_api_key():
-    """Get Gemini API key from environment variable (injected by Lambda from Secrets Manager)."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable not set")
-    return api_key
-
-
-async def _send_push_notification_async(job_id: str, title: str, session) -> None:
-    """Load job client_id, get device tokens, send SNS Publish to each endpoint. Does not raise."""
-    import boto3
-    job_logger = bind_job_id(logger, job_id)
-    try:
-        job = await get_job_async(session, job_id)
-        if not job:
-            return
-        client_id = job.get("client_id")
-        if not client_id:
-            return
-        tokens = await get_device_tokens_by_client_id_async(session, client_id)
-        endpoints = [t["sns_endpoint_arn"] for t in tokens if t.get("sns_endpoint_arn")]
-        if not endpoints:
-            job_logger.debug("No device endpoints for push notification", client_id=client_id)
-            return
-        message_dict = {
-            "aps": {
-                "alert": {"title": "Gut check ready", "body": title if title else ""},
-                "sound": "default",
-            },
-            "job_id": job_id,
-        }
-        message_json = json.dumps(message_dict)
-        # SNS picks APNS or APNS_SANDBOX based on endpoint platform; both keys need the same payload
-        sns_message = json.dumps({"APNS": message_json, "APNS_SANDBOX": message_json})
-        job_logger.info(
-            "Sending push notification",
-            endpoints_count=len(endpoints),
-            payload=message_dict,
-        )
-        message_attrs = {
-            "AWS.SNS.MOBILE.APNS.PUSH_TYPE": {"DataType": "String", "StringValue": "alert"},
-            "AWS.SNS.MOBILE.APNS.PRIORITY": {"DataType": "String", "StringValue": "10"},
-        }
-        region = os.getenv("AWS_REGION", "us-east-1")
-        sns = boto3.client("sns", region_name=region)
-        for arn in endpoints:
-            try:
-                sns.publish(
-                    TargetArn=arn,
-                    Message=sns_message,
-                    MessageStructure="json",
-                    MessageAttributes=message_attrs,
-                )
-                job_logger.debug("Push sent", endpoint_arn=arn)
-            except Exception as e:
-                job_logger.warning("SNS Publish failed for endpoint", endpoint_arn=arn, error=str(e))
-                # Remove disabled/stale endpoints so we stop retrying; user can re-register on next launch
-                err_str = str(e)
-                if "EndpointDisabled" in err_str or "InvalidParameter" in err_str:
-                    try:
-                        await invalidate_device_token_by_endpoint_arn_async(session, arn)
-                        job_logger.info("Invalidated disabled endpoint", endpoint_arn=arn)
-                    except Exception as inv_err:
-                        job_logger.warning("Failed to invalidate endpoint", endpoint_arn=arn, error=str(inv_err))
-    except Exception as e:
-        job_logger.warning("Push notification failed", error=str(e))
-
-
-def get_api_key(api_provider: str = None) -> str:
-    """
-    Get API key for the specified provider.
-    
-    Args:
-        api_provider: Provider name ("openai" or "gemini"). If None, reads from API_PROVIDER env var (default: "gemini")
-    
-    Returns:
-        API key string
-    """
-    if api_provider is None:
-        api_provider = os.getenv("API_PROVIDER", "gemini").lower()
-    
+def setup():
+    """Validate required env vars before processing any messages."""
+    api_provider = get_env("API_PROVIDER", "gemini").lower()
     if api_provider == "openai":
-        return get_openai_api_key()
+        api_key = require_env("OPENAI_API_KEY")
     elif api_provider == "gemini":
-        return get_gemini_api_key()
+        api_key = require_env("GEMINI_API_KEY")
     else:
         raise ValueError(f"Unknown API provider: {api_provider}. Must be 'openai' or 'gemini'")
+    return {
+        "assets_bucket": require_env("ASSETS_BUCKET"),
+        "api_provider": api_provider,
+        "api_key": api_key,
+    }
 
 
-async def process_message(message_body: dict, session) -> bool:
+async def process_message(message_body: dict, session, assets_bucket: str, api_provider: str, api_key: str) -> bool:
     """Process a single message (async)."""
     job_id = message_body.get("job_id")
     transcript_s3_key = message_body.get("transcript_s3_key")
     frames_s3_prefix = message_body.get("frames_s3_prefix")
-    
-    # Bind job_id to logger context
+
     job_logger = bind_job_id(logger, job_id) if job_id else logger
-    
+
     if not job_id or not transcript_s3_key or not frames_s3_prefix:
         job_logger.warning("Invalid message: missing required fields")
         return False
 
-    # Idempotency: skip if job already completed (e.g. redelivery or duplicate message)
+    # Idempotency: skip if job already completed
     job = await get_job_async(session, job_id)
     if job and job.get("status") == JobStatus.COMPLETED.value:
         job_logger.info("Job already completed, skipping reprocessing", job_id=job_id)
@@ -147,116 +59,34 @@ async def process_message(message_body: dict, session) -> bool:
         job_logger.info(
             "Processing job: extracting and verifying claims from transcript and frames",
             transcript_s3_key=transcript_s3_key,
-            frames_s3_prefix=frames_s3_prefix
+            frames_s3_prefix=frames_s3_prefix,
+            api_provider=api_provider,
         )
-        
-        assets_bucket = os.getenv("ASSETS_BUCKET")
-        if not assets_bucket:
-            raise ValueError("ASSETS_BUCKET must be set")
-        
-        # Determine API provider (default: gemini)
-        api_provider = os.getenv("API_PROVIDER", "gemini").lower()
-        job_logger.info("Using API provider", api_provider=api_provider)
-        
-        api_key = get_api_key(api_provider)
-        if not api_key:
-            raise ValueError(f"{api_provider.upper()} API key not found")
-        
-        # Set status to EXTRACTING before starting
+
         await update_job_status_async(session, job_id, JobStatus.EXTRACTING.value, None)
-        
-        # Extract and verify claims in one operation
+
         result = await extract_and_verify_claims(
             job_id, transcript_s3_key, frames_s3_prefix, assets_bucket, api_key, session, api_provider
         )
-        
+
         title = result.get("title")
         verifications = result.get("verifications", [])
-        
+
         job_logger.info(
             "Extracted and verified claims",
             verifications_count=len(verifications),
             title=title
         )
-        
-        # Update job with title and verified claims (async)
-        from shared.database import update_job_verified_claims_async
+
         await update_job_verified_claims_async(session, job_id, result)
+        await send_push_notification(job_id, session, logger, title=title or "Gut check ready")
 
-        # Send push notification
-        await _send_push_notification_async(job_id, title, session)
-
-            
         return True
     except Exception as e:
         job_logger.error("Error processing job", exc_info=True, error=str(e))
-        # Mark job as failed
         await update_job_failed_async(session, job_id, True, str(e))
         return False
 
 
-async def async_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Async Lambda handler for SQS event batches.
-    
-    Args:
-        event: SQS event with Records array
-        context: Lambda context
-    
-    Returns:
-        Dict with batchItemFailures for partial batch processing
-    """
-    # Initialize secrets from Secrets Manager (must happen before using database)
-    await initialize_secrets()
-    
-    batch_item_failures: List[Dict[str, str]] = []
-    
-    # Process each record in the batch
-    for record in event.get("Records", []):
-        message_id = record.get("messageId", "")
-        
-        try:
-            # Parse message body
-            message_body = json.loads(record.get("body", "{}"))
-            
-            # Process message with its own database session
-            async with get_sessionmaker()() as session:
-                success = await process_message(message_body, session)
-                
-                if not success:
-                    # Add to batch failures for retry
-                    batch_item_failures.append({"itemIdentifier": message_id})
-                    logger.warning("Failed to process message", message_id=message_id)
-                else:
-                    logger.info("Successfully processed message", message_id=message_id)
-                    
-        except json.JSONDecodeError as e:
-            logger.error("Error decoding message", exc_info=True, error=str(e), message_id=message_id)
-            # Invalid JSON - add to failures
-            batch_item_failures.append({"itemIdentifier": message_id})
-        except Exception as e:
-            logger.error("Error processing message", exc_info=True, error=str(e), message_id=message_id)
-            # Processing error - add to failures
-            batch_item_failures.append({"itemIdentifier": message_id})
-    
-    # Return batch item failures for partial batch processing
-    return {"batchItemFailures": batch_item_failures}
-
-
-def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Synchronous wrapper for async handler.
-    Lambda Runtime Interface Client requires a synchronous handler.
-    """
-    # Create a new event loop for each invocation to avoid loop conflicts
-    # This ensures all async operations in this invocation use the same loop
-    loop = None
-    try:
-        loop = asyncio.get_event_loop()
-        logger.info("Using existing event loop")
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        logger.info("Created new event loop")
-        
-    return loop.run_until_complete(async_handler(event, context))
+async_handler = sqs_batch_handler(process_message, logger, setup_fn=setup)
+handler = sync_handler(async_handler, logger)
